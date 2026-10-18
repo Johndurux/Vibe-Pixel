@@ -1,5 +1,4 @@
 export const GRID_SIZE = 100;
-export const CELL_SIZE = 8; // px per sel
 
 export type BlockKind = 'neon' | 'vapor' | 'terminal' | 'synth' | 'cyber';
 
@@ -32,20 +31,6 @@ export const DUMMY_BLOCKS: DummyBlock[] = [
   { id: 'b15', name: 'Vapor Cloud',    kind: 'vapor',   color: '#f97316', rows: [40, 46], cols: [72, 98], author: 'cloud',     url: 'https://example.com/b15' },
 ];
 
-export function getCanvasColors(): { background: string; grid: string } {
-  return {
-    background: '#0f172a',
-    grid: 'rgba(34, 211, 238, 0.08)',
-  };
-}
-
-export function getBlockColor(kind: BlockKind): string {
-  const palette: Record<BlockKind, string> = {
-    neon: '#22d3ee',
-    vapor: '#a855f7',
-    terminal: '#4ade80',
-    synth: '#c084fc',
-    cyber: '#facc15',
-  };
-  return palette[kind];
-}
+export const CANVAS_BG = '#0f172a';
+export const CANVAS_GRID = 'rgba(34, 211, 238, 0.10)';
+export const CANVAS_BORDER = '#22d3ee';
