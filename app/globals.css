@@ -3,10 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --vibe-dark: #0f172a;
-  --vibe-surface: #1e293b;
-  --vibe-accent: #22d3ee;
-  --vibe-secondary: #a855f7;
+  --ink: #0a0e17;
+  --panel: #121826;
+  --hairline: #1f2737;
+  --accent: #4cc9f0;
+  --dim: #8a93a6;
 }
 
 html,
@@ -16,32 +17,33 @@ body {
 }
 
 body {
-  background-color: var(--vibe-dark);
-  color: #e2e8f0;
-  font-family: 'Space Grotesk', 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--ink);
+  color: #e6ebf5;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-feature-settings: "tnum";
 }
 
-/* Teks judul punchy */
+/* Judul: solid, punchy, bukan gradien */
 .font-display {
-  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  font-family: var(--font-space-grotesk), sans-serif;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
-/* Scrollbar neon */
+/* Scrollbar tipis, netral (bukan neon) */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--vibe-dark);
+  background: var(--ink);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(34, 211, 238, 0.3);
-  border-radius: 8px;
+  background: var(--hairline);
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(34, 211, 238, 0.55);
+  background: #2a3448;
 }
 
 /* safe-area: jangan tertutup status bar HP */
@@ -50,4 +52,10 @@ body {
 }
 .vibe-safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* focus keyboard: ring aksen tipis, satu-satunya tempat aksen disorot */
+:where(button, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

@@ -32,9 +32,9 @@ export const DUMMY_BLOCKS: DummyBlock[] = [
   { id: 'b15', name: 'Vapor Cloud', kind: 'vapor', color: '#f97316', rows: [20, 29], cols: [40, 49], author: 'cloud', url: 'https://example.com/b15' },
 ];
 
-export const CANVAS_BG = '#0f172a';
-export const CANVAS_GRID = 'rgba(34, 211, 238, 0.10)';
-export const CANVAS_BORDER = '#22d3ee';
+export const CANVAS_BG = '#0a0e17';
+export const CANVAS_GRID = 'rgba(148, 163, 184, 0.10)';
+export const CANVAS_BORDER = '#1f2737';
 
 // Statistik untuk UI user
 export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE; // 10.000

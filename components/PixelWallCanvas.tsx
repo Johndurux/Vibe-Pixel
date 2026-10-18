@@ -25,11 +25,8 @@ function buildTile(size: number): HTMLCanvasElement {
   tctx.fillStyle = CANVAS_BG;
   tctx.fillRect(0, 0, size, size);
   tctx.strokeStyle = CANVAS_GRID;
-  tctx.lineWidth = Math.max(1, size / 16);
+  tctx.lineWidth = 1;
   tctx.strokeRect(0.5, 0.5, size - 1, size - 1);
-  const pad = Math.max(1, size / 12);
-  tctx.fillStyle = CANVAS_BG;
-  tctx.fillRect(pad, pad, size - pad * 2, size - pad * 2);
   return tile;
 }
 
@@ -90,7 +87,7 @@ export default function PixelWallCanvas() {
       const h = (b.rows[1] - b.rows[0] + 1) * cellPx;
       const isHot = hover?.id === b.id || selected?.id === b.id;
       ctx.fillStyle = b.color;
-      ctx.globalAlpha = isHot ? 1 : 0.85;
+      ctx.globalAlpha = isHot ? 1 : 0.9;
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
       if (isHot) {
@@ -98,18 +95,18 @@ export default function PixelWallCanvas() {
         ctx.lineWidth = Math.max(1.5, cellPx / 5);
         ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
       }
-      // Tampilkan nama hanya saat sel cukup besar (zoom dekat) agar tidak berantakan
+      // Label nama hanya saat sel cukup besar (zoom dekat), agar tidak berantakan
       const screenCell = cellPx * view.scale;
-      if (screenCell > 22) {
-        ctx.fillStyle = '#0f172a';
-        ctx.font = `700 ${Math.max(10, cellPx * 0.7)}px 'Space Grotesk', sans-serif`;
-        ctx.fillText(b.name, x + cellPx * 0.6, y + cellPx * 0.9);
+      if (screenCell > 26) {
+        ctx.fillStyle = CANVAS_BG;
+        ctx.font = `700 ${Math.max(10, cellPx * 0.7)}px var(--font-space-grotesk), sans-serif`;
+        ctx.fillText(b.name, x + cellPx * 0.55, y + cellPx * 0.85);
       }
     }
 
     ctx.strokeStyle = CANVAS_BORDER;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, fullW, fullW);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, fullW, fullW);
   }, [view, baseCell, hover, selected]);
 
   const pickBlock = (clientX: number, clientY: number, target: Element): DummyBlock | null => {
@@ -138,23 +135,23 @@ export default function PixelWallCanvas() {
   const onReset = () => setView({ scale: 1, offsetX: 0, offsetY: 0 });
 
   return (
-    <div className="relative flex h-full w-full flex-col gap-2">
-      {/* Toolbar zoom */}
+    <div className="flex h-full w-full flex-col gap-2">
+      {/* Toolbar: control menempel di atas canvas, satu baris */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <ToolBtn onClick={() => onZoom(1)} label="Zoom +">+</ToolBtn>
-          <ToolBtn onClick={() => onZoom(-1)} label="Zoom -">−</ToolBtn>
-          <ToolBtn onClick={onReset} label="Reset view">⟲</ToolBtn>
-          <span className="ml-2 rounded-md bg-vibe-surface/60 px-2 py-1 font-mono text-[11px] text-vibe-accent/80">
+        <div className="flex items-center gap-1">
+          <ToolBtn onClick={() => onZoom(1)} label="Perbesar">+</ToolBtn>
+          <ToolBtn onClick={() => onZoom(-1)} label="Perkecil">−</ToolBtn>
+          <ToolBtn onClick={onReset} label="Reset tampilan">⟲</ToolBtn>
+          <span className="ml-2 font-mono text-[11px] text-dim">
             {Math.round(view.scale * 100)}%
           </span>
         </div>
         {hover && (
           <div
-            className="max-w-[60%] truncate rounded-md border px-3 py-1.5 font-mono text-xs"
-            style={{ borderColor: hover.color, color: hover.color, background: '#0f172a99' }}
+            className="max-w-[55%] truncate rounded-sm border border-hairline bg-panel px-2.5 py-1 font-mono text-[11px]"
+            style={{ color: hover.color }}
           >
-            {hover.name} · @{hover.author} · {hover.rows[0]}:{hover.rows[1]}×{hover.cols[0]}-{hover.cols[1]}
+            {hover.name} · @{hover.author}
           </div>
         )}
       </div>
@@ -162,7 +159,8 @@ export default function PixelWallCanvas() {
       {/* Canvas area */}
       <div
         ref={wrapRef}
-        className="relative flex-1 overflow-hidden rounded-xl border border-vibe-accent/20 bg-vibe-dark shadow-[0_0_40px_-10px_#22d3ee44]"
+        className="relative flex-1 overflow-hidden rounded-sm border border-hairline"
+        style={{ background: CANVAS_BG }}
         onMouseMove={(e) => setHover(pickBlock(e.clientX, e.clientY, e.currentTarget))}
         onMouseLeave={() => setHover(null)}
         onClick={(e) => {
@@ -173,30 +171,31 @@ export default function PixelWallCanvas() {
         <canvas ref={canvasRef} className="h-full w-full cursor-crosshair" />
       </div>
 
+      {/* Detail blok yang dipilih: hanya muncul saat ada, warna mengikuti blok */}
       {selected && (
         <div
-          className="absolute bottom-3 left-3 z-20 flex items-center gap-3 rounded-lg border bg-vibe-surface/90 px-4 py-3 backdrop-blur"
+          className="flex items-center gap-3 rounded-sm border bg-panel px-3 py-2"
           style={{ borderColor: selected.color }}
         >
-          <span className="h-3 w-3 rounded-full" style={{ background: selected.color }} />
-          <div className="leading-tight">
-            <div className="font-mono text-sm font-bold" style={{ color: selected.color }}>
+          <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: selected.color }} />
+          <div className="min-w-0 leading-tight">
+            <div className="truncate font-mono text-xs font-semibold" style={{ color: selected.color }}>
               {selected.name}
             </div>
-            <div className="text-[11px] text-slate-400">by {selected.author}</div>
+            <div className="truncate text-[11px] text-dim">by {selected.author}</div>
           </div>
           <a
             href={selected.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-md px-3 py-1.5 text-xs font-bold transition hover:brightness-125"
-            style={{ background: selected.color, color: '#0f172a' }}
+            className="ml-auto shrink-0 rounded-sm px-2.5 py-1 text-[11px] font-semibold"
+            style={{ background: selected.color, color: CANVAS_BG }}
           >
-            Open ↗
+            Buka
           </a>
           <button
             onClick={() => setSelected(null)}
-            className="text-slate-400 hover:text-white"
+            className="shrink-0 text-dim hover:text-white"
             aria-label="Tutup detail"
           >
             ✕
@@ -220,7 +219,7 @@ function ToolBtn({
     <button
       onClick={onClick}
       aria-label={label}
-      className="flex h-8 w-8 items-center justify-center rounded-md border border-vibe-accent/30 bg-vibe-surface/70 font-mono text-base font-bold text-vibe-accent transition hover:bg-vibe-accent hover:text-vibe-dark active:scale-95"
+      className="flex h-7 w-7 items-center justify-center rounded-sm border border-hairline bg-panel font-mono text-sm text-dim transition hover:border-accent hover:text-accent active:scale-95"
     >
       {children}
     </button>
