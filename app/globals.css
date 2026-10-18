@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vibe-dark: #0f172a;
+  --vibe-surface: #1e293b;
+  --vibe-accent: #22d3ee;
+  --vibe-secondary: #a855f7;
+}
+
+body {
+  background-color: var(--vibe-dark);
+  color: #e2e8f0;
+}
