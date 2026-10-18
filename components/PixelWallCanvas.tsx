@@ -88,17 +88,22 @@ export default function PixelWallCanvas() {
       const y = b.rows[0] * cellPx;
       const w = (b.cols[1] - b.cols[0] + 1) * cellPx;
       const h = (b.rows[1] - b.rows[0] + 1) * cellPx;
+      const isHot = hover?.id === b.id || selected?.id === b.id;
       ctx.fillStyle = b.color;
-      ctx.globalAlpha = 0.92;
+      ctx.globalAlpha = isHot ? 1 : 0.85;
       ctx.fillRect(x, y, w, h);
       ctx.globalAlpha = 1;
-      ctx.strokeStyle = b.color;
-      ctx.lineWidth = Math.max(1, cellPx / 6);
-      ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
-      if (cellPx * view.scale > 14) {
+      if (isHot) {
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = Math.max(1.5, cellPx / 5);
+        ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+      }
+      // Tampilkan nama hanya saat sel cukup besar (zoom dekat) agar tidak berantakan
+      const screenCell = cellPx * view.scale;
+      if (screenCell > 22) {
         ctx.fillStyle = '#0f172a';
-        ctx.font = `bold ${Math.max(9, cellPx * 0.55)}px 'Space Grotesk', sans-serif`;
-        ctx.fillText(b.name, x + cellPx * 0.5, y + cellPx * 0.8);
+        ctx.font = `700 ${Math.max(10, cellPx * 0.7)}px 'Space Grotesk', sans-serif`;
+        ctx.fillText(b.name, x + cellPx * 0.6, y + cellPx * 0.9);
       }
     }
 

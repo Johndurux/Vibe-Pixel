@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import PixelWallCanvas from '@/components/PixelWallCanvas';
-import { DUMMY_BLOCKS } from '@/lib/blocks';
+import { DUMMY_BLOCKS, FILLED_CELLS, TOTAL_CELLS } from '@/lib/blocks';
 
 export default function Home() {
   const [legendOpen, setLegendOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function Home() {
               VIBE&nbsp;PIXEL&nbsp;WALL
             </h1>
             <p className="mt-0.5 hidden text-[11px] text-slate-400 sm:block">
-              10.000 sel · render canvas · zoom &amp; pan · neon launchpad
+              Papan pixel kolektif — klaim, catat, dan tampilkan karyamu
             </p>
           </div>
           <button
@@ -63,11 +63,16 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
+      {/* Footer — statistik user, bukan metadata debug */}
       <footer className="vibe-safe-bottom z-10 border-t border-vibe-accent/10 bg-vibe-surface/30">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2 font-mono text-[11px] text-slate-500 sm:px-6">
-          <span>100×100 Grid · {DUMMY_BLOCKS.length} Blocks · Dark Neon</span>
-          <span>Phase 1 · Static</span>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2.5 font-mono text-[11px] sm:px-6">
+          <span className="text-slate-400">
+            <span className="text-vibe-accent">{DUMMY_BLOCKS.length}</span> /{' '}
+            {TOTAL_CELLS.toLocaleString('id-ID')} blok terisi
+          </span>
+          <span className="hidden text-slate-500 sm:inline">
+            {FILLED_CELLS.toLocaleString('id-ID')} sel aktif dari {TOTAL_CELLS.toLocaleString('id-ID')}
+          </span>
         </div>
       </footer>
     </main>
