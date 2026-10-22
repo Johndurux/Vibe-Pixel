@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Space_Grotesk, Inter, JetBrains_Mono } from 'next/font/google';
+import { Anton, Archivo_Black, Space_Mono, Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], weight: ['500', '700'], display: 'swap' });
-const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap' });
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600'], display: 'swap' });
+const anton = Anton({ subsets: ['latin'], weight: ['400'], display: 'swap', variable: '--font-anton' });
+const archivoBlack = Archivo_Black({ subsets: ['latin'], weight: ['400'], display: 'swap', variable: '--font-archivo-black' });
+const spaceMono = Space_Mono({ subsets: ['latin'], weight: ['400', '700'], display: 'swap', variable: '--font-space-mono' });
+const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], display: 'swap', variable: '--font-inter' });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600'], display: 'swap', variable: '--font-jetbrains-mono' });
 
 export const metadata: Metadata = {
   title: 'Vibe Pixel Wall',
@@ -18,10 +20,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id">
       <body
-        className={`${spaceGrotesk.className} ${inter.className} ${jetbrainsMono.className} antialiased`}
-        style={{ fontFamily: `var(--font-space-grotesk), var(--font-inter), system-ui, sans-serif` }}
+        className={`${anton.variable} ${archivoBlack.variable} ${spaceMono.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
+        style={{ fontFamily: `var(--font-inter), system-ui, sans-serif` }}
       >
         {children}
       </body>

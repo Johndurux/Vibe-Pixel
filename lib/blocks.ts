@@ -1,6 +1,6 @@
 export const GRID_SIZE = 100;
 
-export type BlockKind = 'neon' | 'vapor' | 'terminal' | 'synth' | 'cyber';
+export type BlockKind = 'launchpad' | 'builder' | 'community' | 'tool' | 'game';
 
 export interface DummyBlock {
   id: string;
@@ -13,30 +13,31 @@ export interface DummyBlock {
   url: string;
 }
 
-// Setiap blok berukuran seragam 10x10 sel, diposisikan sesuai koordinat, tanpa overlap.
+// 15 blok, masing-masing SATU unit grid tunggal (10x10 px), tersebar di seluruh
+// grid 100x100. Tidak ada lapisan "sel vs blok" — 1 blok = 1 unit grid.
+// Colors are flat/sticker-like: warm paper tones, no neon/glow.
 export const DUMMY_BLOCKS: DummyBlock[] = [
-  { id: 'b1', name: 'Neon Grid', kind: 'neon', color: '#22d3ee', rows: [0, 9], cols: [0, 9], author: 'jhondurux', url: 'https://example.com/b1' },
-  { id: 'b2', name: 'Vapor Synth', kind: 'synth', color: '#a855f7', rows: [0, 9], cols: [10, 19], author: 'synthwave', url: 'https://example.com/b2' },
-  { id: 'b3', name: 'Cyber Terminal', kind: 'terminal', color: '#4ade80', rows: [0, 9], cols: [20, 29], author: 'terminal', url: 'https://example.com/b3' },
-  { id: 'b4', name: 'Pixel Rain', kind: 'neon', color: '#38bdf8', rows: [0, 9], cols: [30, 39], author: 'pixelfan', url: 'https://example.com/b4' },
-  { id: 'b5', name: 'Laser Beam', kind: 'vapor', color: '#f472b6', rows: [0, 9], cols: [40, 49], author: 'laser', url: 'https://example.com/b5' },
-  { id: 'b6', name: 'Glitch Zone', kind: 'cyber', color: '#facc15', rows: [10, 19], cols: [0, 9], author: 'glitch', url: 'https://example.com/b6' },
-  { id: 'b7', name: 'Synth Loop', kind: 'synth', color: '#c084fc', rows: [10, 19], cols: [10, 19], author: 'music', url: 'https://example.com/b7' },
-  { id: 'b8', name: 'Data Stream', kind: 'terminal', color: '#2dd4bf', rows: [10, 19], cols: [20, 29], author: 'stream', url: 'https://example.com/b8' },
-  { id: 'b9', name: 'Neon Sunset', kind: 'neon', color: '#fb7185', rows: [10, 19], cols: [30, 39], author: 'sunset', url: 'https://example.com/b9' },
-  { id: 'b10', name: 'Vapor Drive', kind: 'vapor', color: '#fbbf24', rows: [10, 19], cols: [40, 49], author: 'retro', url: 'https://example.com/b10' },
-  { id: 'b11', name: 'Cyber Cat', kind: 'cyber', color: '#34d399', rows: [20, 29], cols: [0, 9], author: 'cat', url: 'https://example.com/b11' },
-  { id: 'b12', name: 'Terminal 8', kind: 'terminal', color: '#60a5fa', rows: [20, 29], cols: [10, 19], author: 'term8', url: 'https://example.com/b12' },
-  { id: 'b13', name: 'Synthwave 2000', kind: 'synth', color: '#e879f9', rows: [20, 29], cols: [20, 29], author: 'y2k', url: 'https://example.com/b13' },
-  { id: 'b14', name: 'Laser Grid', kind: 'neon', color: '#22d3ee', rows: [20, 29], cols: [30, 39], author: 'grid', url: 'https://example.com/b14' },
-  { id: 'b15', name: 'Vapor Cloud', kind: 'vapor', color: '#f97316', rows: [20, 29], cols: [40, 49], author: 'cloud', url: 'https://example.com/b15' },
+  { id: 'b1', name: 'VibeLaunch', kind: 'launchpad', color: '#FF5A36', rows: [8, 8], cols: [12, 12], author: 'vibeteam', url: 'https://testnet.vibevibe.fun' },
+  { id: 'b2', name: 'PixelDAO', kind: 'community', color: '#FFD23F', rows: [15, 15], cols: [47, 47], author: 'dao', url: 'https://example.com/b2' },
+  { id: 'b3', name: 'ChainCanvas', kind: 'tool', color: '#6B9AC4', rows: [6, 6], cols: [83, 83], author: 'chainart', url: 'https://example.com/b3' },
+  { id: 'b4', name: 'MemeMint', kind: 'game', color: '#A8D08D', rows: [28, 28], cols: [20, 20], author: 'memer', url: 'https://example.com/b4' },
+  { id: 'b5', name: 'BuilderHub', kind: 'builder', color: '#F4A261', rows: [33, 33], cols: [58, 58], author: 'builder', url: 'https://example.com/b5' },
+  { id: 'b6', name: 'TokenTrek', kind: 'game', color: '#E67E80', rows: [22, 22], cols: [91, 91], author: 'trek', url: 'https://example.com/b6' },
+  { id: 'b7', name: 'VibeSDK', kind: 'tool', color: '#8ECAE6', rows: [41, 41], cols: [6, 6], author: 'sdk', url: 'https://example.com/b7' },
+  { id: 'b8', name: 'StickerSwap', kind: 'community', color: '#D4A5D4', rows: [48, 48], cols: [38, 38], author: 'swap', url: 'https://example.com/b8' },
+  { id: 'b9', name: 'RocketRaid', kind: 'game', color: '#FF9F1C', rows: [44, 44], cols: [72, 72], author: 'rocket', url: 'https://example.com/b9' },
+  { id: 'b10', name: 'LaunchLab', kind: 'launchpad', color: '#FF5A36', rows: [63, 63], cols: [17, 17], author: 'lab', url: 'https://example.com/b10' },
+  { id: 'b11', name: 'CodeCanvas', kind: 'builder', color: '#6B9AC4', rows: [58, 58], cols: [54, 54], author: 'code', url: 'https://example.com/b11' },
+  { id: 'b12', name: 'PixelPark', kind: 'community', color: '#A8D08D', rows: [69, 69], cols: [88, 88], author: 'park', url: 'https://example.com/b12' },
+  { id: 'b13', name: 'ArtChain', kind: 'tool', color: '#F4A261', rows: [80, 80], cols: [10, 10], author: 'art', url: 'https://example.com/b13' },
+  { id: 'b14', name: 'DegenDen', kind: 'game', color: '#E67E80', rows: [85, 85], cols: [45, 45], author: 'degen', url: 'https://example.com/b14' },
+  { id: 'b15', name: 'VibeVault', kind: 'launchpad', color: '#8ECAE6', rows: [90, 90], cols: [76, 76], author: 'vault', url: 'https://example.com/b15' },
 ];
 
-export const CANVAS_BG = '#0a0e17';
-export const CANVAS_GRID = 'rgba(148, 163, 184, 0.10)';
-export const CANVAS_BORDER = '#1f2737';
+// Paper/ink palette for canvas
+export const CANVAS_BG = '#F2EADF';      // paper warm cream
+export const CANVAS_GRID = 'rgba(22, 20, 15, 0.08)'; // subtle ink grid
+export const CANVAS_BORDER = '#16140F';  // ink border
 
 // Statistik untuk UI user
-export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE; // 10.000
-export const BLOCK_SIZE = 10; // sel per sisi untuk satu blok
-export const FILLED_CELLS = DUMMY_BLOCKS.length * BLOCK_SIZE * BLOCK_SIZE; // sel yang terisi
+export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE; // 10.000 (= total blok, 1 blok = 1 sel)
