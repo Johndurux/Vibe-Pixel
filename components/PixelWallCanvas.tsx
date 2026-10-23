@@ -16,6 +16,15 @@ interface View {
   offsetY: number;
 }
 
+// Two full-size canvases (static + overlay) are expensive. Cap the backing
+// store so a 3000px board never allocates a 6000x6000 (or larger) bitmap.
+const MAX_CANVAS_SIDE = 2048;
+const MAX_ZOOM = 3;
+
+function canvasDpr(boardPx: number) {
+  return Math.min(window.devicePixelRatio || 1, 2, MAX_CANVAS_SIDE / boardPx);
+}
+
 // Helper to create a tiled background pattern
 function createPattern(ctx: CanvasRenderingContext2D, cellPx: number) {
   const tile = document.createElement('canvas');
@@ -115,7 +124,7 @@ export default function PixelWallCanvas() {
 
   // Resize both canvases only when the snapped board size changes
   useEffect(() => {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = canvasDpr(boardPx);
     const newW = Math.round(boardPx * dpr);
     const newH = Math.round(boardPx * dpr);
     const prev = sizeRef.current;
@@ -157,7 +166,7 @@ export default function PixelWallCanvas() {
   useEffect(() => {
     const canvas = staticCanvasRef.current;
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = canvasDpr(boardPx);
     const viewportW = boardPx;
     const viewportH = boardPx;
 
@@ -191,7 +200,7 @@ export default function PixelWallCanvas() {
   useEffect(() => {
     const canvas = overlayCanvasRef.current;
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = canvasDpr(boardPx);
     const viewportW = boardPx;
     const viewportH = boardPx;
     const ctx = canvas.getContext('2d')!;
@@ -240,8 +249,8 @@ export default function PixelWallCanvas() {
   const onZoom = (dir: 1 | -1) => {
     userZoomedRef.current = true;
     setView(v => {
-      const ns = Math.min(5, Math.max(0.3, v.scale * (dir === 1 ? 1.4 : 1 / 1.4)));
-      return { ...v, scale: ns };
+      const ns = Math.min(MAX_ZOOM, Math.max(0.3, v.scale * (dir === 1 ? 1.4 : 1 / 1.4)));
+      return ns === v.scale ? v : { ...v, scale: ns };
     });
   };
   const onReset = () => {

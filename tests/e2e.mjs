@@ -154,6 +154,25 @@ async function main() {
     assert.ok(box && Math.abs(box.width - 1000) <= 1, `reset board width ${box?.width}, expected 1000`);
     await page.screenshot({ path: `${OUT}/desktop-reset.png`, fullPage: true });
 
+    // Max zoom must stay bounded: a 3000px board may only allocate a 2048px
+    // canvas, otherwise mobile Chrome runs out of memory and stutters.
+    for (let i = 0; i < 6; i++) await page.getByLabel('Perbesar').click();
+    await page.waitForFunction(
+      () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '300%',
+      undefined,
+      { timeout: 3000 },
+    );
+    box = await board.boundingBox();
+    assert.ok(box && Math.abs(box.width - 3000) <= 1, `max zoom board width ${box?.width}, expected 3000`);
+    const canvasSizes = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('canvas')).map(c => [c.width, c.height]),
+    );
+    assert.ok(
+      canvasSizes.length === 2 && canvasSizes.every(([w, h]) => w <= 2048 && h <= 2048),
+      `canvas backing store too large: ${JSON.stringify(canvasSizes)}`,
+    );
+    await page.screenshot({ path: `${OUT}/desktop-zoom300.png`, fullPage: true });
+
     // Tablet: auto-fit keeps the whole board inside the viewport.
     await page.setViewportSize({ width: 768, height: 900 });
     await page.reload({ waitUntil: 'networkidle' });
