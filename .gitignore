@@ -1,3 +1,10 @@
 *.next
+.next/
 node_modules
 .vercel
+__pycache__/
+*.pyc
+solution_*.py
+screenshots/
+*.tsbuildinfo
+test-results/

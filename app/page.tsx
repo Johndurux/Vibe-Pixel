@@ -19,14 +19,14 @@ export default function Home() {
       </header>
 
       
-      <section className="mx-auto flex-1 w-full max-w-full px-4 pb-8 sm:px-6 sm:pb-12">
+      <section className="mx-auto flex-1 w-full max-w-7xl px-4 pb-8 sm:px-6 sm:pb-12">
         <div className="cork-frame-border">
           {/* Corkboard frame with texture */}
-          <div className="cork-frame p-6 sm:p-8 w-full min-h-[640px]">
+          <div className="cork-frame p-3 sm:p-8 w-full min-h-[420px] sm:min-h-[640px]">
             {/* Paper inner area */}
             <div className="paper-inner overflow-hidden relative w-full h-full">
-              {/* Canvas wrapper - horizontal scroll */}
-              <div className="relative overflow-auto h-full flex items-start justify-center pb-4 w-full min-w-[1040px]">
+              {/* Canvas wrapper - horizontal scroll when zoomed */}
+              <div data-testid="board-scroll" className="relative overflow-auto h-full flex items-start justify-start pb-4 w-full min-w-0">
                 <PixelWallCanvas />
               </div>
             </div>

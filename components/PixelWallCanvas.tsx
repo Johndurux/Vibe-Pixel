@@ -16,21 +16,29 @@ interface View {
   offsetY: number;
 }
 
-// Render grid tile (offscreen) for performance
-function buildTile(size: number): HTMLCanvasElement {
+// Helper to create a tiled background pattern
+function createPattern(ctx: CanvasRenderingContext2D, cellPx: number) {
   const tile = document.createElement('canvas');
-  tile.width = size;
-  tile.height = size;
+  tile.width = cellPx;
+  tile.height = cellPx;
   const tctx = tile.getContext('2d')!;
   tctx.fillStyle = CANVAS_BG;
-  tctx.fillRect(0, 0, size, size);
+  tctx.fillRect(0, 0, cellPx, cellPx);
   tctx.strokeStyle = CANVAS_GRID;
   tctx.lineWidth = 1;
-  tctx.strokeRect(0.5, 0.5, size - 1, size - 1);
-  return tile;
+  tctx.beginPath();
+  tctx.moveTo(cellPx - 0.5, 0);
+  tctx.lineTo(cellPx - 0.5, cellPx);
+  tctx.stroke();
+  tctx.beginPath();
+  tctx.moveTo(0, cellPx - 0.5);
+  tctx.lineTo(cellPx, cellPx - 0.5);
+  tctx.stroke();
+  const pattern = ctx.createPattern(tile, 'repeat')!;
+  ctx.fillStyle = pattern;
 }
 
-// Draw a sticker block with thick black outline and hard shadow
+// Draw a sticker block (same as original implementation)
 function drawStickerBlock(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -40,34 +48,46 @@ function drawStickerBlock(
   color: string,
   isHot: boolean,
   cellPx: number,
-  viewScale: number,
   name: string
 ) {
-  const shadowOffset = Math.max(2, Math.round(3 * viewScale));
-  const outlineWidth = Math.max(2, Math.round(3 * viewScale));
+  const isTiny = cellPx < 6;
+  const shadowOffset = isTiny ? 0 : Math.max(1, Math.round(cellPx * 0.2));
+  const outlineWidth = isTiny ? 0 : Math.max(1, Math.round(cellPx * 0.16));
 
-  // Hard drop shadow (ink color)
-  ctx.fillStyle = '#16140F';
-  ctx.fillRect(x + shadowOffset, y + shadowOffset, w, h);
+  // Shadow
+  if (shadowOffset > 0) {
+    ctx.fillStyle = '#16140F';
+    ctx.fillRect(x + shadowOffset, y + shadowOffset, w, h);
+  }
 
-  // Sticker body
+  // Body
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
 
-  // Thick black outline
-  ctx.strokeStyle = '#16140F';
-  ctx.lineWidth = outlineWidth;
-  ctx.strokeRect(x + outlineWidth / 2, y + outlineWidth / 2, w - outlineWidth, h - outlineWidth);
-
-  // Highlight on hover/select - accent border inside
-  if (isHot) {
-    ctx.strokeStyle = '#FF5A36';
-    ctx.lineWidth = Math.max(1, Math.round(2 * viewScale));
-    ctx.strokeRect(x + outlineWidth + 1, y + outlineWidth + 1, w - outlineWidth * 2 - 2, h - outlineWidth * 2 - 2);
+  // Outline
+  if (outlineWidth > 0) {
+    ctx.strokeStyle = '#16140F';
+    ctx.lineWidth = outlineWidth;
+    ctx.strokeRect(x + outlineWidth / 2, y + outlineWidth / 2, w - outlineWidth, h - outlineWidth);
   }
 
-  // Label when zoomed in enough
-  const screenCell = cellPx * viewScale;
+  if (isHot) {
+    const hotWidth = Math.max(1, Math.round(cellPx * 0.08));
+    const hotInset = Math.min(
+      Math.round(outlineWidth + Math.max(1, cellPx * 0.1)),
+      Math.floor((Math.min(w, h) - 1) / 2),
+    );
+    ctx.strokeStyle = '#FF5A36';
+    ctx.lineWidth = hotWidth;
+    ctx.strokeRect(
+      x + hotInset,
+      y + hotInset,
+      Math.max(1, w - hotInset * 2),
+      Math.max(1, h - hotInset * 2),
+    );
+  }
+
+  const screenCell = cellPx;
   if (screenCell > 22) {
     ctx.fillStyle = '#16140F';
     ctx.font = `700 ${Math.max(9, Math.round(cellPx * 0.6))}px var(--font-anton), var(--font-archivo-black), sans-serif`;
@@ -78,92 +98,135 @@ function drawStickerBlock(
 
 export default function PixelWallCanvas() {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const staticCanvasRef = useRef<HTMLCanvasElement>(null); // pre‑rendered grid + blocks
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null); // hover / selection overlay
+  const sizeRef = useRef<{ w: number; h: number } | null>(null);
   const [view, setView] = useState<View>({ scale: 1, offsetX: 0, offsetY: 0 });
   const [hover, setHover] = useState<DummyBlock | null>(null);
   const [selected, setSelected] = useState<DummyBlock | null>(null);
+  const fitScaleRef = useRef(1);
+  const userZoomedRef = useRef(false);
+  const [availableWidth, setAvailableWidth] = useState(0);
 
-  const baseCell = 10; // 10px per cell at scale=1
+  const baseCell = 10;
+  const cellPx = Math.max(2, Math.round(baseCell * view.scale));
+  const boardPx = GRID_SIZE * cellPx;
+  const chromeWidth = Math.min(availableWidth || boardPx, boardPx);
 
-  // Pre‑render static grid (background + thin lines) into an off‑screen canvas.
-  const gridCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  // Resize both canvases only when the snapped board size changes
   useEffect(() => {
-    const cellPx = Math.max(2, Math.round(baseCell * view.scale));
-    const fullW = GRID_SIZE * cellPx;
-    const off = document.createElement('canvas');
-    off.width = fullW;
-    off.height = fullW;
-    const ctx = off.getContext('2d')!;
-    // Fill paper background
-    ctx.fillStyle = CANVAS_BG;
-    ctx.fillRect(0, 0, fullW, fullW);
-    // Draw grid lines
-    ctx.strokeStyle = CANVAS_GRID;
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= GRID_SIZE; i++) {
-      const p = i * cellPx;
-      ctx.beginPath();
-      ctx.moveTo(p + 0.5, 0);
-      ctx.lineTo(p + 0.5, fullW);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, p + 0.5);
-      ctx.lineTo(fullW, p + 0.5);
-      ctx.stroke();
-    }
-    gridCanvasRef.current = off;
-  }, [view.scale]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const wrap = wrapRef.current;
-    if (!canvas || !wrap) return;
-    const ctx = canvas.getContext('2d')!;
-
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const cellPx = Math.max(2, Math.round(baseCell * view.scale));
-    const fullW = GRID_SIZE * cellPx;
+    const newW = Math.round(boardPx * dpr);
+    const newH = Math.round(boardPx * dpr);
+    const prev = sizeRef.current;
+    if (!prev || prev.w !== newW || prev.h !== newH) {
+      [staticCanvasRef.current, overlayCanvasRef.current].forEach((c) => {
+        if (c) {
+          c.width = newW;
+          c.height = newH;
+        }
+      });
+      sizeRef.current = { w: newW, h: newH };
+    }
+  }, [boardPx]);
 
-    // Canvas size = full grid size (not viewport) so entire grid is drawn
-    const canvasW = Math.round(fullW * dpr);
-    const canvasH = Math.round(fullW * dpr);
-    canvas.width = canvasW;
-    canvas.height = canvasH;
+  // Fit the whole 100x100 board into the available width on first paint.
+  // Snapping to a whole pixel per cell keeps grid lines and hit-testing aligned.
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const scroller = wrap?.parentElement?.parentElement;
+    if (!wrap || !scroller) return;
+    const computeFit = () => {
+      const available = scroller.clientWidth;
+      if (available < 50) return;
+      setAvailableWidth(prev => (prev === available ? prev : available));
+      const fitCell = Math.max(2, Math.min(10, Math.floor(available / GRID_SIZE)));
+      const fit = fitCell / baseCell;
+      fitScaleRef.current = fit;
+      if (!userZoomedRef.current) {
+        setView(v => (v.scale === fit ? v : { ...v, scale: fit, offsetX: 0, offsetY: 0 }));
+      }
+    };
+    computeFit();
+    const ro = new ResizeObserver(computeFit);
+    ro.observe(scroller);
+    return () => ro.disconnect();
+  }, [baseCell]);
 
+  // Pre‑render static background + all blocks (no highlights)
+  useEffect(() => {
+    const canvas = staticCanvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const viewportW = boardPx;
+    const viewportH = boardPx;
+
+    const ctx = canvas.getContext('2d')!;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.scale(dpr, dpr);
     ctx.translate(view.offsetX, view.offsetY);
-    ctx.scale(view.scale, view.scale);
 
-    // Draw pre‑rendered static grid
-    const grid = gridCanvasRef.current;
-    if (grid) {
-      ctx.drawImage(grid, 0, 0, fullW, fullW);
-    }
+    // Background pattern
+    createPattern(ctx, cellPx);
+    ctx.fillRect(0, 0, viewportW, viewportH);
 
-    // Draw blocks as stickers
+    // Draw all blocks (culling)
     for (const b of DUMMY_BLOCKS) {
       const x = b.cols[0] * cellPx;
       const y = b.rows[0] * cellPx;
       const w = (b.cols[1] - b.cols[0] + 1) * cellPx;
       const h = (b.rows[1] - b.rows[0] + 1) * cellPx;
-      const isHot = hover?.id === b.id || selected?.id === b.id;
-      drawStickerBlock(ctx, x, y, w, h, b.color, isHot, cellPx, view.scale, b.name);
+      if (x + w < 0 || y + h < 0 || x > viewportW || y > viewportH) continue;
+      drawStickerBlock(ctx, x, y, w, h, b.color, false, cellPx, b.name);
     }
 
-    // Outer grid border
+    // Outer border
     ctx.strokeStyle = CANVAS_BORDER;
     ctx.lineWidth = 2;
-    ctx.strokeRect(1, 1, fullW - 2, fullW - 2);
-  }, [view, baseCell, hover, selected]);
+    ctx.strokeRect(0.5, 0.5, viewportW - 1, viewportH - 1);
+  }, [view, cellPx, boardPx]);
 
-  const pickBlock = (clientX: number, clientY: number, target: Element): DummyBlock | null => {
-    const canvas = canvasRef.current;
+  // Render overlay (hover & selected) on each change
+  useEffect(() => {
+    const canvas = overlayCanvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const viewportW = boardPx;
+    const viewportH = boardPx;
+    const ctx = canvas.getContext('2d')!;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(dpr, dpr);
+    ctx.translate(view.offsetX, view.offsetY);
+
+    if (hover) {
+      const x = hover.cols[0] * cellPx;
+      const y = hover.rows[0] * cellPx;
+      const w = (hover.cols[1] - hover.cols[0] + 1) * cellPx;
+      const h = (hover.rows[1] - hover.rows[0] + 1) * cellPx;
+      if (!(x + w < 0 || y + h < 0 || x > viewportW || y > viewportH)) {
+        drawStickerBlock(ctx, x, y, w, h, hover.color, true, cellPx, hover.name);
+      }
+    }
+    if (selected && (!hover || selected.id !== hover.id)) {
+      const x = selected.cols[0] * cellPx;
+      const y = selected.rows[0] * cellPx;
+      const w = (selected.cols[1] - selected.cols[0] + 1) * cellPx;
+      const h = (selected.rows[1] - selected.rows[0] + 1) * cellPx;
+      if (!(x + w < 0 || y + h < 0 || x > viewportW || y > viewportH)) {
+        drawStickerBlock(ctx, x, y, w, h, selected.color, true, cellPx, selected.name);
+      }
+    }
+  }, [hover, selected, view, cellPx, boardPx]);
+
+  // Hit testing
+  const pickBlock = (clientX: number, clientY: number): DummyBlock | null => {
+    const canvas = overlayCanvasRef.current;
     if (!canvas) return null;
     const rect = canvas.getBoundingClientRect();
-    const cellPx = Math.max(2, Math.round(baseCell * view.scale));
-    const x = (clientX - rect.left - view.offsetX) / view.scale;
-    const y = (clientY - rect.top - view.offsetY) / view.scale;
+    const x = clientX - rect.left - view.offsetX;
+    const y = clientY - rect.top - view.offsetY;
     const col = Math.floor(x / cellPx);
     const row = Math.floor(y / cellPx);
     for (const b of DUMMY_BLOCKS) {
@@ -175,104 +238,83 @@ export default function PixelWallCanvas() {
   };
 
   const onZoom = (dir: 1 | -1) => {
-    setView((v) => {
+    userZoomedRef.current = true;
+    setView(v => {
       const ns = Math.min(5, Math.max(0.3, v.scale * (dir === 1 ? 1.4 : 1 / 1.4)));
       return { ...v, scale: ns };
     });
   };
-  const onReset = () => setView({ scale: 1, offsetX: 0, offsetY: 0 });
+  const onReset = () => {
+    userZoomedRef.current = false;
+    const available = wrapRef.current?.parentElement?.parentElement?.clientWidth ?? 0;
+    const fitCell = available >= 50
+      ? Math.max(2, Math.min(10, Math.floor(available / GRID_SIZE)))
+      : Math.round(fitScaleRef.current * baseCell);
+    const fit = fitCell / baseCell;
+    fitScaleRef.current = fit;
+    setView({ scale: fit, offsetX: 0, offsetY: 0 });
+  };
 
   return (
-    <div className="flex h-full w-full flex-col gap-3">
-      {/* Toolbar - paper buttons */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
+    <div className="mx-auto flex h-full flex-col gap-3" style={{ width: `${boardPx}px` }}>
+      <div
+        className="sticky left-0 z-10 flex items-center justify-between gap-3 flex-wrap"
+        style={{ width: `${chromeWidth}px` }}
+      >
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onZoom(1)}
-            aria-label="Perbesar"
-            className="btn-paper h-9 px-3 text-sm"
-          >
-            +
-          </button>
-          <button
-            onClick={() => onZoom(-1)}
-            aria-label="Perkecil"
-            className="btn-paper h-9 px-3 text-sm"
-          >
-            −
-          </button>
-          <button
-            onClick={onReset}
-            aria-label="Reset tampilan"
-            className="btn-paper h-9 px-3 text-sm"
-          >
-            ⟲
-          </button>
-          <span className="font-mono-ui text-xs ml-2 text-ink/60">
-            {Math.round(view.scale * 100)}%
-          </span>
+          <button onClick={() => onZoom(1)} aria-label="Perbesar" className="btn-paper h-9 px-3 text-sm">+</button>
+          <button onClick={() => onZoom(-1)} aria-label="Perkecil" className="btn-paper h-9 px-3 text-sm">−</button>
+          <button onClick={onReset} aria-label="Reset tampilan" className="btn-paper h-9 px-3 text-sm">⟲</button>
+          <span data-testid="zoom-level" className="font-mono-ui text-xs ml-2 text-ink/60">{Math.round(view.scale * 100)}%</span>
         </div>
         {hover && (
-          <div className="tag-paper" style={{ color: hover.color }}>
+          <div className="tag-paper hidden sm:block" style={{ color: hover.color }}>
             {hover.name} · @{hover.author}
           </div>
         )}
       </div>
-
-      {/* Canvas area */}
       <div
         ref={wrapRef}
-        className="relative"
+        data-testid="wall-board"
+        className="relative mx-auto"
         style={{
           background: CANVAS_BG,
-          width: `${GRID_SIZE * baseCell * view.scale}px`,
-          height: `${GRID_SIZE * baseCell * view.scale}px`,
+          width: `${boardPx}px`,
+          height: `${boardPx}px`,
         }}
-        onMouseMove={(e) => setHover(pickBlock(e.clientX, e.clientY, e.currentTarget))}
+        onMouseMove={e => setHover(pickBlock(e.clientX, e.clientY))}
         onMouseLeave={() => setHover(null)}
-        onClick={(e) => {
-          const b = pickBlock(e.clientX, e.clientY, e.currentTarget);
+        onClick={e => {
+          const b = pickBlock(e.clientX, e.clientY);
           if (b) setSelected(b);
         }}
       >
         <canvas
-          ref={canvasRef}
-          className="cursor-crosshair"
+          ref={staticCanvasRef}
+          className="absolute top-0 left-0"
           style={{
-            width: `${GRID_SIZE * baseCell * view.scale}px`,
-            height: `${GRID_SIZE * baseCell * view.scale}px`,
+            width: `${boardPx}px`,
+            height: `${boardPx}px`,
+          }}
+        />
+        <canvas
+          ref={overlayCanvasRef}
+          className="absolute top-0 left-0 cursor-crosshair"
+          style={{
+            width: `${boardPx}px`,
+            height: `${boardPx}px`,
           }}
         />
       </div>
-
-      {/* Selected block detail - paper tag style */}
       {selected && (
-        <div className="tag-paper flex items-center gap-3" style={{ borderColor: '#16140F' }}>
-          <span
-            className="shrink-0 h-4 w-4 rounded-sm border-2 border-ink"
-            style={{ background: selected.color }}
-          />
+        <div data-testid="selected-detail" className="tag-paper sticky left-0 z-10 flex items-center gap-3" style={{ borderColor: '#16140F', width: `${chromeWidth}px` }}>
+          <span className="shrink-0 h-4 w-4 rounded-sm border-2 border-ink" style={{ background: selected.color }} />
           <div className="min-w-0 leading-tight">
-            <div className="truncate font-bold text-sm" style={{ color: selected.color }}>
-              {selected.name}
-            </div>
+            <div className="truncate font-bold text-sm" style={{ color: selected.color }}>{selected.name}</div>
             <div className="truncate text-xs text-ink/60">by {selected.author}</div>
           </div>
-          <a
-            href={selected.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-accent shrink-0 px-3 py-1 text-xs"
-          >
-            Buka
-          </a>
-          <button
-            onClick={() => setSelected(null)}
-            aria-label="Tutup detail"
-            className="shrink-0 text-ink/50 hover:text-accent font-bold text-lg leading-none"
-          >
-            ×
-          </button>
+          <a href={selected.url} target="_blank" rel="noopener noreferrer" className="btn-accent shrink-0 px-3 py-1 text-xs">Buka</a>
+          <button onClick={() => setSelected(null)} aria-label="Tutup detail" className="shrink-0 text-ink/50 hover:text-accent font-bold text-lg leading-none">×</button>
         </div>
       )}
     </div>
