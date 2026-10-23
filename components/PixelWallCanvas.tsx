@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   DUMMY_BLOCKS,
   GRID_SIZE,
@@ -24,6 +24,11 @@ const MAX_ZOOM = 3;
 function canvasDpr(boardPx: number) {
   return Math.min(window.devicePixelRatio || 1, 2, MAX_CANVAS_SIDE / boardPx);
 }
+
+// Measure the fit before the first paint on the client, without triggering
+// React's server-rendering warning for useLayoutEffect.
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // Helper to create a tiled background pattern
 function createPattern(ctx: CanvasRenderingContext2D, cellPx: number) {
@@ -116,6 +121,7 @@ export default function PixelWallCanvas() {
   const fitScaleRef = useRef(1);
   const userZoomedRef = useRef(false);
   const [availableWidth, setAvailableWidth] = useState(0);
+  const [fitted, setFitted] = useState(false);
 
   const baseCell = 10;
   const cellPx = Math.max(2, Math.round(baseCell * view.scale));
@@ -124,6 +130,7 @@ export default function PixelWallCanvas() {
 
   // Resize both canvases only when the snapped board size changes
   useEffect(() => {
+    if (!fitted) return;
     const dpr = canvasDpr(boardPx);
     const newW = Math.round(boardPx * dpr);
     const newH = Math.round(boardPx * dpr);
@@ -137,11 +144,14 @@ export default function PixelWallCanvas() {
       });
       sizeRef.current = { w: newW, h: newH };
     }
-  }, [boardPx]);
+  }, [boardPx, fitted]);
 
   // Fit the whole 100x100 board into the available width on first paint.
   // Snapping to a whole pixel per cell keeps grid lines and hit-testing aligned.
-  useEffect(() => {
+  // This runs before paint so the first canvas allocation is already the fitted
+  // size (on mobile the initial 1000px board would otherwise allocate 2000x2000
+  // bitmaps twice before being resized down to 300px).
+  useIsomorphicLayoutEffect(() => {
     const wrap = wrapRef.current;
     const scroller = wrap?.parentElement?.parentElement;
     if (!wrap || !scroller) return;
@@ -155,6 +165,7 @@ export default function PixelWallCanvas() {
       if (!userZoomedRef.current) {
         setView(v => (v.scale === fit ? v : { ...v, scale: fit, offsetX: 0, offsetY: 0 }));
       }
+      setFitted(true);
     };
     computeFit();
     const ro = new ResizeObserver(computeFit);
@@ -164,6 +175,7 @@ export default function PixelWallCanvas() {
 
   // Pre‑render static background + all blocks (no highlights)
   useEffect(() => {
+    if (!fitted) return;
     const canvas = staticCanvasRef.current;
     if (!canvas) return;
     const dpr = canvasDpr(boardPx);
@@ -194,10 +206,11 @@ export default function PixelWallCanvas() {
     ctx.strokeStyle = CANVAS_BORDER;
     ctx.lineWidth = 2;
     ctx.strokeRect(0.5, 0.5, viewportW - 1, viewportH - 1);
-  }, [view, cellPx, boardPx]);
+  }, [view, cellPx, boardPx, fitted]);
 
   // Render overlay (hover & selected) on each change
   useEffect(() => {
+    if (!fitted) return;
     const canvas = overlayCanvasRef.current;
     if (!canvas) return;
     const dpr = canvasDpr(boardPx);
@@ -227,7 +240,7 @@ export default function PixelWallCanvas() {
         drawStickerBlock(ctx, x, y, w, h, selected.color, true, cellPx, selected.name);
       }
     }
-  }, [hover, selected, view, cellPx, boardPx]);
+  }, [hover, selected, view, cellPx, boardPx, fitted]);
 
   // Hit testing
   const pickBlock = (clientX: number, clientY: number): DummyBlock | null => {
