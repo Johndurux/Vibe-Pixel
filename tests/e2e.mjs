@@ -184,11 +184,30 @@ async function main() {
     await page.screenshot({ path: `${OUT}/tablet-768.png`, fullPage: true });
 
     // Mobile: no horizontal document scroll, board still clickable.
+    // Record canvas backing-store writes to catch the old regression where the
+    // 1000px initial board allocated a huge bitmap before auto-fit ran.
+    await page.addInitScript(() => {
+      window.__canvasWrites = [];
+      const w = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'width');
+      Object.defineProperty(HTMLCanvasElement.prototype, 'width', {
+        configurable: true,
+        get: w.get,
+        set(v) {
+          window.__canvasWrites.push(v);
+          w.set.call(this, v);
+        },
+      });
+    });
     await page.setViewportSize({ width: 375, height: 800 });
     await page.reload({ waitUntil: 'networkidle' });
     await waitForBoardWidth(page, 375 - 16);
     box = await board.boundingBox();
     assert.ok(box && box.width <= 375 - 32, `mobile board overflows: ${box?.width}`);
+    const canvasWrites = await page.evaluate(() => window.__canvasWrites);
+    assert.ok(
+      canvasWrites.every(w => w <= 800),
+      `mobile allocated an oversized canvas before fit: ${JSON.stringify(canvasWrites)}`,
+    );
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
     );
