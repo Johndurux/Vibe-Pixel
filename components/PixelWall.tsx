@@ -70,7 +70,7 @@ const BlockLayer = memo(function BlockLayer() {
   );
 });
 
-export default function PixelWallCanvas() {
+export default function PixelWall() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<ViewState>({ scale: 1, x: 0, y: 0 });

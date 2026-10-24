@@ -1,6 +1,6 @@
 'use client';
 
-import PixelWallCanvas from '@/components/PixelWallCanvas';
+import PixelWall from '@/components/PixelWall';
 import { DUMMY_BLOCKS, TOTAL_CELLS } from '@/lib/blocks';
 
 export default function Home() {
@@ -23,7 +23,7 @@ export default function Home() {
         <div className="mx-auto w-full max-w-[1020px]">
           <div className="cork-frame">
             <div className="board-scroll relative z-[2] flex h-full w-full min-w-0 items-stretch justify-start overflow-hidden">
-              <PixelWallCanvas />
+              <PixelWall />
             </div>
           </div>
 
