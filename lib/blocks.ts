@@ -34,10 +34,5 @@ export const DUMMY_BLOCKS: DummyBlock[] = [
   { id: 'b15', name: 'VibeVault', kind: 'launchpad', color: '#8ECAE6', rows: [90, 90], cols: [76, 76], author: 'vault', url: 'https://example.com/b15' },
 ];
 
-// Paper/ink palette for canvas
-export const CANVAS_BG = '#F2EADF';      // paper warm cream
-export const CANVAS_GRID = 'rgba(22, 20, 15, 0.08)'; // subtle ink grid
-export const CANVAS_BORDER = '#16140F';  // ink border
-
 // Statistik untuk UI user
 export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE; // 10.000 (= total blok, 1 blok = 1 sel)

@@ -8,7 +8,7 @@ import { chromium } from 'playwright';
 const PORT = Number(process.env.E2E_PORT || 4310);
 const BASE = `http://127.0.0.1:${PORT}`;
 const OUT = 'screenshots';
-const BLOCK = { col: 12, row: 8, name: 'VibeLaunch' };
+const BLOCK_ID = 'b1';
 
 if (!existsSync('.next/BUILD_ID')) {
   console.error('No production build found. Run `npm run build` first.');
@@ -45,29 +45,76 @@ async function waitForServer() {
   throw new Error(`server did not start on ${BASE}\n${serverLog.slice(-1500)}`);
 }
 
-async function clickBlock(page, board, cell) {
-  const box = await board.boundingBox();
-  assert.ok(box, 'board has no bounding box');
-  await page.mouse.click(box.x + (BLOCK.col + 0.5) * cell, box.y + (BLOCK.row + 0.5) * cell);
+async function boardMetrics(page) {
+  return page.evaluate(() => {
+    const board = document.querySelector('[data-testid="wall-board"]');
+    const viewport = document.querySelector('[data-testid="board-scroll"]');
+    const frame = document.querySelector('.cork-frame');
+    const block = document.querySelector('[data-block-id]');
+    const grid = document.querySelector('.wall-grid');
+    if (!board || !viewport || !frame || !block || !grid) return null;
+
+    const box = board.getBoundingClientRect();
+    return {
+      board: { width: box.width, height: box.height, x: box.x, y: box.y },
+      viewport: { width: viewport.clientWidth, height: viewport.clientHeight },
+      frame: { width: frame.getBoundingClientRect().width },
+      blockCount: document.querySelectorAll('[data-block-id]').length,
+      boardDom: board.querySelectorAll('*').length,
+      gridVisibility: getComputedStyle(grid).visibility,
+      borderWidth: getComputedStyle(block).borderTopWidth,
+      shadow: getComputedStyle(block).boxShadow,
+      zoomed: board.dataset.zoomed,
+      labels: board.dataset.labels,
+      zoom: document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim(),
+      overflow: document.documentElement.scrollWidth - window.innerWidth,
+      canvasCount: document.querySelectorAll('canvas').length,
+    };
+  });
 }
 
-async function assertBlockSelected(page) {
+async function clickBlock(page) {
+  const block = page.locator(`[data-block-id="${BLOCK_ID}"]`);
+  const box = await block.boundingBox();
+  assert.ok(box, 'block has no bounding box');
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const detail = page.getByTestId('selected-detail');
   await detail.waitFor({ state: 'visible', timeout: 5000 });
-  assert.match(await detail.innerText(), new RegExp(BLOCK.name));
+  assert.match(await detail.innerText(), /VibeLaunch/);
 }
 
-async function waitForBoardWidth(page, maxWidth) {
+async function closeDetail(page) {
+  await page.getByLabel('Tutup detail').click();
+  await page.getByTestId('selected-detail').waitFor({ state: 'detached' });
+}
+
+async function assertFitted(page, label) {
   await page.waitForFunction(
-    max => {
-      const el = document.querySelector('[data-testid="wall-board"]');
-      if (!el) return false;
-      const width = el.getBoundingClientRect().width;
-      return width > 0 && width <= max;
+    () => {
+      const board = document.querySelector('[data-testid="wall-board"]');
+      const viewport = document.querySelector('[data-testid="board-scroll"]');
+      if (!board || !viewport) return false;
+      const box = board.getBoundingClientRect();
+      return box.width <= viewport.clientWidth + 1 && box.height <= viewport.clientHeight + 1;
     },
-    maxWidth,
-    { timeout: 5000 },
+    undefined,
+    { timeout: 3000 },
   );
+  const metrics = await boardMetrics(page);
+  assert.ok(metrics, `${label}: board metrics missing`);
+  assert.equal(metrics.canvasCount, 0, `${label}: canvas element found`);
+  assert.equal(metrics.blockCount, 15, `${label}: expected 15 blocks`);
+  assert.ok(metrics.boardDom < 200, `${label}: board DOM too large (${metrics.boardDom})`);
+  assert.ok(
+    metrics.board.width <= metrics.viewport.width + 1 &&
+      metrics.board.height <= metrics.viewport.height + 1,
+    `${label}: board does not fit (${metrics.board.width}x${metrics.board.height} in ${metrics.viewport.width}x${metrics.viewport.height})`,
+  );
+  assert.ok(metrics.board.width > 0 && metrics.board.height > 0, `${label}: board has no size`);
+  assert.equal(metrics.gridVisibility, 'hidden', `${label}: grid visible at fitted scale`);
+  assert.equal(metrics.borderWidth, '1px', `${label}: fitted block border should be 1px`);
+  assert.equal(metrics.overflow, 0, `${label}: horizontal document overflow`);
+  return metrics;
 }
 
 async function main() {
@@ -90,134 +137,92 @@ async function main() {
   page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
 
   try {
-    // Desktop: board fits, is centred, and hover/click hit-testing works.
     await page.goto(BASE, { waitUntil: 'networkidle' });
-    const board = page.getByTestId('wall-board');
-    await board.waitFor({ state: 'visible' });
-    let box = await board.boundingBox();
-    assert.ok(box, 'desktop board box');
-    assert.ok(box.width <= 1001, `desktop board too wide: ${box.width}`);
-    assert.ok(box.x > 0 && box.x + box.width < 1440, 'desktop board is not centred');
+    await page.getByTestId('wall-board').waitFor({ state: 'visible' });
 
-    await clickBlock(page, board, Math.round(box.width / 100));
-    await assertBlockSelected(page);
-    await page.getByLabel('Tutup detail').click();
-    await page.getByTestId('selected-detail').waitFor({ state: 'detached' });
+    const desktop = await assertFitted(page, 'desktop');
+    assert.ok(desktop.frame.width <= 1021 && desktop.frame.width > 900, `desktop frame width ${desktop.frame.width}`);
+    assert.ok(
+      desktop.board.x > 0 && desktop.board.x + desktop.board.width < 1440,
+      'desktop board is not centred',
+    );
+    const desktopFit = desktop.zoom;
+
+    await clickBlock(page);
     await page.screenshot({ path: `${OUT}/desktop-1440.png`, fullPage: true });
+    await closeDetail(page);
 
-    // Zoom 140%: the grid must stay aligned and clicks must still land on b1.
-    await page.getByLabel('Perbesar').click();
+    // Zoom until the grid and heavier block treatment turn on.
+    for (let i = 0; i < 4; i++) await page.getByLabel('Perbesar').click();
     await page.waitForFunction(
-      () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '140%',
+      () => document.querySelector('[data-testid="wall-board"]')?.dataset.zoomed === 'true',
       undefined,
       { timeout: 3000 },
     );
-    const zoom = (await page.getByTestId('zoom-level').innerText()).trim();
-    assert.equal(zoom, '140%', `zoom label was ${zoom}`);
-    box = await board.boundingBox();
-    assert.ok(box, 'zoomed board box');
-    assert.ok(Math.abs(box.width - 1400) <= 1, `zoomed board width ${box.width}, expected 1400`);
-    await clickBlock(page, board, Math.round(box.width / 100));
-    await assertBlockSelected(page);
-    await page.screenshot({ path: `${OUT}/desktop-zoom140.png`, fullPage: true });
+    const zoomed = await boardMetrics(page);
+    assert.ok(zoomed, 'zoomed metrics missing');
+    assert.equal(zoomed.gridVisibility, 'visible', 'grid should be visible at >= 200%');
+    assert.equal(zoomed.borderWidth, '2px', 'zoomed block border should be 2px');
+    assert.match(zoomed.shadow, /2px 2px 0px 0px/, `unexpected zoomed shadow: ${zoomed.shadow}`);
+    assert.ok(zoomed.board.width > zoomed.viewport.width, 'zoomed board should be pannable');
+    await page.screenshot({ path: `${OUT}/desktop-zoom.png`, fullPage: true });
 
-    // At 140% the board is wider than its frame; the scroller must expose the
-    // right/bottom edge instead of clipping the outer border away.
-    const scroller = page.getByTestId('board-scroll');
-    const scrollerSize = await scroller.evaluate(el => ({
-      clientWidth: el.clientWidth,
-      scrollWidth: el.scrollWidth,
-    }));
-    assert.ok(
-      scrollerSize.scrollWidth > scrollerSize.clientWidth,
-      `zoomed board is not scrollable (${scrollerSize.scrollWidth}/${scrollerSize.clientWidth})`,
+    // One-finger/one-pointer pan must update the transform without scrolling.
+    const beforePan = await page.getByTestId('wall-board').evaluate(el => el.style.transform);
+    const viewportBox = await page.getByTestId('board-scroll').boundingBox();
+    assert.ok(viewportBox, 'viewport box missing');
+    await page.mouse.move(viewportBox.x + viewportBox.width / 2, viewportBox.y + viewportBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      viewportBox.x + viewportBox.width / 2 - 80,
+      viewportBox.y + viewportBox.height / 2 - 40,
+      { steps: 5 },
     );
-    await scroller.evaluate(el => { el.scrollLeft = el.scrollWidth; });
-    await page.waitForTimeout(100);
-    const zoomBox = await page.getByTestId('zoom-level').boundingBox();
-    assert.ok(
-      zoomBox && zoomBox.x >= 0 && zoomBox.x + zoomBox.width <= 1440,
-      'zoom controls scrolled out of view',
-    );
-    await page.screenshot({ path: `${OUT}/desktop-zoom140-edge.png`, fullPage: true });
+    await page.mouse.up();
+    await page.waitForTimeout(80);
+    const afterPan = await page.getByTestId('wall-board').evaluate(el => el.style.transform);
+    assert.notEqual(beforePan, afterPan, 'pan did not move the board');
 
-    // Reset returns to the fitted scale. Because this is a zoom-out, it also
-    // verifies the overlay was cleared rather than leaving ghost trails.
+    // Reset returns to fit and hides the grid again.
     await page.getByLabel('Reset tampilan').click();
     await page.waitForFunction(
-      () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '100%',
-      undefined,
+      fit => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === fit,
+      desktopFit,
       { timeout: 3000 },
     );
-    await page.waitForTimeout(150);
-    box = await board.boundingBox();
-    assert.ok(box && Math.abs(box.width - 1000) <= 1, `reset board width ${box?.width}, expected 1000`);
-    await page.screenshot({ path: `${OUT}/desktop-reset.png`, fullPage: true });
+    await assertFitted(page, 'desktop reset');
 
-    // Max zoom must stay bounded: a 3000px board may only allocate a 2048px
-    // canvas, otherwise mobile Chrome runs out of memory and stutters.
-    for (let i = 0; i < 6; i++) await page.getByLabel('Perbesar').click();
+    // Max zoom stays bounded at 400%.
+    for (let i = 0; i < 10; i++) await page.getByLabel('Perbesar').click();
     await page.waitForFunction(
-      () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '300%',
+      () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '400%',
       undefined,
       { timeout: 3000 },
     );
-    box = await board.boundingBox();
-    assert.ok(box && Math.abs(box.width - 3000) <= 1, `max zoom board width ${box?.width}, expected 3000`);
-    const canvasSizes = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('canvas')).map(c => [c.width, c.height]),
-    );
-    assert.ok(
-      canvasSizes.length === 2 && canvasSizes.every(([w, h]) => w <= 2048 && h <= 2048),
-      `canvas backing store too large: ${JSON.stringify(canvasSizes)}`,
-    );
-    await page.screenshot({ path: `${OUT}/desktop-zoom300.png`, fullPage: true });
+    const maxZoom = await boardMetrics(page);
+    assert.ok(maxZoom && Math.abs(maxZoom.board.width - 4000) <= 1, `max board width ${maxZoom?.board.width}`);
+    await page.screenshot({ path: `${OUT}/desktop-zoom400.png`, fullPage: true });
 
     // Tablet: auto-fit keeps the whole board inside the viewport.
     await page.setViewportSize({ width: 768, height: 900 });
     await page.reload({ waitUntil: 'networkidle' });
-    await waitForBoardWidth(page, 768 - 16);
-    box = await board.boundingBox();
-    assert.ok(box && box.width <= 768 - 32, `tablet board overflows: ${box?.width}`);
-    await clickBlock(page, board, Math.round(box.width / 100));
-    await assertBlockSelected(page);
+    await page.getByTestId('wall-board').waitFor({ state: 'visible' });
+    const tablet = await assertFitted(page, 'tablet');
+    assert.ok(tablet.board.width <= 768 - 16, `tablet board overflows: ${tablet.board.width}`);
+    await clickBlock(page);
     await page.screenshot({ path: `${OUT}/tablet-768.png`, fullPage: true });
 
-    // Mobile: no horizontal document scroll, board still clickable.
-    // Record canvas backing-store writes to catch the old regression where the
-    // 1000px initial board allocated a huge bitmap before auto-fit ran.
-    await page.addInitScript(() => {
-      window.__canvasWrites = [];
-      const w = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, 'width');
-      Object.defineProperty(HTMLCanvasElement.prototype, 'width', {
-        configurable: true,
-        get: w.get,
-        set(v) {
-          window.__canvasWrites.push(v);
-          w.set.call(this, v);
-        },
-      });
-    });
+    // Mobile: no horizontal document scroll, board still tappable.
     await page.setViewportSize({ width: 375, height: 800 });
     await page.reload({ waitUntil: 'networkidle' });
-    await waitForBoardWidth(page, 375 - 16);
-    box = await board.boundingBox();
-    assert.ok(box && box.width <= 375 - 32, `mobile board overflows: ${box?.width}`);
-    const canvasWrites = await page.evaluate(() => window.__canvasWrites);
-    assert.ok(
-      canvasWrites.every(w => w <= 800),
-      `mobile allocated an oversized canvas before fit: ${JSON.stringify(canvasWrites)}`,
-    );
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
-    );
-    assert.ok(overflow <= 2, `mobile horizontal overflow: ${overflow}px`);
-    await clickBlock(page, board, Math.round(box.width / 100));
-    await assertBlockSelected(page);
+    await page.getByTestId('wall-board').waitFor({ state: 'visible' });
+    const mobile = await assertFitted(page, 'mobile');
+    assert.ok(mobile.board.width <= 375 - 16, `mobile board overflows: ${mobile.board.width}`);
+    await clickBlock(page);
     await page.screenshot({ path: `${OUT}/mobile-375.png`, fullPage: true });
 
     assert.deepEqual(errors, [], `browser errors:\n${errors.join('\n')}`);
-    console.log('E2E OK: desktop centre, 140% hit-test, tablet/mobile fit, no console errors');
+    console.log('E2E OK: DOM renderer fits, zooms, pans, and opens the block detail on desktop/tablet/mobile');
   } finally {
     await browser.close();
   }

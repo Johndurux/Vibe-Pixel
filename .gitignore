@@ -8,3 +8,5 @@ solution_*.py
 screenshots/
 *.tsbuildinfo
 test-results/
+vpw_*.mjs
+screenshot.mjs

@@ -67,14 +67,18 @@ body {
   background-color: var(--cork);
   border: 2px solid var(--cork-dark);
   border-radius: 0.75rem;
-  box-shadow: inset 0 0 60px -10px rgba(22,20,15,0.15);
+  box-shadow: inset 0 0 0 1px rgba(22,20,15,0.08), 0 2px 6px rgba(22,20,15,0.12);
   box-sizing: border-box;
 }
 .cork-frame::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  background-image:
+    radial-gradient(rgba(22,20,15,0.07) 0.7px, transparent 0.8px),
+    radial-gradient(rgba(255,255,255,0.10) 0.7px, transparent 0.8px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 4px 5px;
   pointer-events: none;
   border-radius: 0.75rem;
   z-index: 1;
@@ -85,6 +89,62 @@ body {
 }
 .board-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/* DOM wall renderer: the board is transformed, never repainted. */
+.wall-viewport {
+  contain: layout paint;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.wall-board {
+  background-color: var(--paper);
+  transform-origin: 0 0;
+}
+
+.wall-grid {
+  background-image:
+    linear-gradient(to right, rgba(22, 20, 15, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(22, 20, 15, 0.08) 1px, transparent 1px);
+  background-size: 10px 10px;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.wall-board[data-zoomed="true"] .wall-grid {
+  opacity: 1;
+  visibility: visible;
+}
+
+.wall-block {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--ink);
+}
+
+.wall-board[data-zoomed="true"] .wall-block {
+  border-width: 2px;
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+
+.wall-block-label {
+  display: none;
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--ink);
+  font-family: var(--font-anton), var(--font-archivo-black), sans-serif;
+  font-size: 6px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.wall-board[data-labels="true"] .wall-block-label {
+  display: block;
 }
 
 /* Sticker block base */

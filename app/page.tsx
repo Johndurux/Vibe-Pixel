@@ -19,13 +19,10 @@ export default function Home() {
       </header>
 
       <section className="mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6">
-        {/* One frame only: the cork frame hugs the fitted board. */}
-        <div className="mx-auto w-fit max-w-full">
+        {/* Keep the old 1020px frame footprint; the board fits inside it. */}
+        <div className="mx-auto w-full max-w-[1020px]">
           <div className="cork-frame">
-            <div
-              data-testid="board-scroll"
-              className="board-scroll relative z-[2] flex h-full w-full min-w-0 items-start justify-start overflow-auto"
-            >
+            <div className="board-scroll relative z-[2] flex h-full w-full min-w-0 items-stretch justify-start overflow-hidden">
               <PixelWallCanvas />
             </div>
           </div>
