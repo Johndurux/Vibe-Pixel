@@ -6,7 +6,6 @@ import {
   GRID_SIZE,
   CANVAS_BG,
   CANVAS_GRID,
-  CANVAS_BORDER,
   type DummyBlock,
 } from '@/lib/blocks';
 
@@ -201,11 +200,6 @@ export default function PixelWallCanvas() {
       if (x + w < 0 || y + h < 0 || x > viewportW || y > viewportH) continue;
       drawStickerBlock(ctx, x, y, w, h, b.color, false, cellPx, b.name);
     }
-
-    // Outer border
-    ctx.strokeStyle = CANVAS_BORDER;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0.5, 0.5, viewportW - 1, viewportH - 1);
   }, [view, cellPx, boardPx, fitted]);
 
   // Render overlay (hover & selected) on each change
@@ -284,10 +278,10 @@ export default function PixelWallCanvas() {
         style={{ width: `${chromeWidth}px` }}
       >
         <div className="flex items-center gap-2">
-          <button onClick={() => onZoom(1)} aria-label="Perbesar" className="btn-paper h-9 px-3 text-sm">+</button>
-          <button onClick={() => onZoom(-1)} aria-label="Perkecil" className="btn-paper h-9 px-3 text-sm">−</button>
-          <button onClick={onReset} aria-label="Reset tampilan" className="btn-paper h-9 px-3 text-sm">⟲</button>
-          <span data-testid="zoom-level" className="font-mono-ui text-xs ml-2 text-ink/60">{Math.round(view.scale * 100)}%</span>
+          <button onClick={() => onZoom(1)} aria-label="Perbesar" className="btn-sticker">+</button>
+          <button onClick={() => onZoom(-1)} aria-label="Perkecil" className="btn-sticker">−</button>
+          <button onClick={onReset} aria-label="Reset tampilan" className="btn-sticker">⟲</button>
+          <span data-testid="zoom-level" className="zoom-badge">{Math.round(view.scale * 100)}%</span>
         </div>
         {hover && (
           <div className="tag-paper hidden sm:block" style={{ color: hover.color }}>
@@ -298,7 +292,7 @@ export default function PixelWallCanvas() {
       <div
         ref={wrapRef}
         data-testid="wall-board"
-        className="relative mx-auto"
+        className="relative mx-auto shrink-0"
         style={{
           background: CANVAS_BG,
           width: `${boardPx}px`,
