@@ -1,9 +1,12 @@
 'use client';
 
 import PixelWall from '@/components/PixelWall';
-import { DUMMY_BLOCKS, TOTAL_CELLS } from '@/lib/blocks';
+import { TOTAL_CELLS } from '@/lib/blocks';
+import { useWallBlocks } from '@/lib/useWallBlocks';
 
 export default function Home() {
+  const blocks = useWallBlocks();
+
   return (
     <main className="bg-paper text-ink">
       {/* Header */}
@@ -23,13 +26,13 @@ export default function Home() {
         <div className="mx-auto w-full max-w-[1020px]">
           <div className="cork-frame">
             <div className="board-scroll relative z-[2] flex h-full w-full min-w-0 items-stretch justify-start overflow-hidden">
-              <PixelWall />
+              <PixelWall blocks={blocks} />
             </div>
           </div>
 
           <div className="mt-3 flex items-center">
             <span className="tag-paper">
-              <span className="font-bold text-accent">{DUMMY_BLOCKS.length}</span> /{' '}
+              <span className="font-bold text-accent">{blocks.length}</span> /{' '}
               {TOTAL_CELLS.toLocaleString('id-ID')} blok terisi
             </span>
           </div>
@@ -44,7 +47,7 @@ export default function Home() {
             <a
               href="https://testnet.vibevibe.fun"
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener noreferrer nofollow"
               className="underline hover:text-accent"
             >
               testnet.vibevibe.fun

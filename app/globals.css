@@ -147,6 +147,37 @@ body {
   display: block;
 }
 
+/* Logos stay in the DOM but only paint once the board is zoomed in. */
+.wall-block-logo {
+  display: none;
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wall-board[data-zoomed="true"] .wall-block-logo {
+  display: block;
+}
+
+.wall-board[data-labels="true"] .wall-block[data-has-logo="true"] .wall-block-logo {
+  height: calc(100% - 18px);
+}
+
+.wall-block[data-has-logo="true"] .wall-block-label {
+  left: 4px;
+  right: 4px;
+  top: auto;
+  bottom: 2px;
+  transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Sticker block base */
 .sticker-block {
   border: 3px solid var(--ink);

@@ -36,3 +36,68 @@ export const DUMMY_BLOCKS: DummyBlock[] = [
 
 // Statistik untuk UI user
 export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE; // 10.000 (= total blok, 1 blok = 1 sel)
+
+/** Slot publik yang dikirim GET /api/slots (tanpa wallet). */
+export interface PublicSlot {
+  id: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  project_name: string;
+  description: string | null;
+  link: string;
+  logo_url: string | null;
+  color: string;
+  contract_address: string | null;
+}
+
+/** Bentuk seragam yang dipakai renderer untuk slot API maupun fallback dummy. */
+export interface WallBlock {
+  id: string;
+  name: string;
+  description: string | null;
+  color: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  link: string;
+  logo_url: string | null;
+  contract_address: string | null;
+  author?: string;
+  kind?: BlockKind;
+}
+
+export function slotToWallBlock(slot: PublicSlot): WallBlock {
+  return {
+    id: slot.id,
+    name: slot.project_name,
+    description: slot.description,
+    color: slot.color,
+    x: slot.x,
+    y: slot.y,
+    w: slot.w,
+    h: slot.h,
+    link: slot.link,
+    logo_url: slot.logo_url,
+    contract_address: slot.contract_address,
+  };
+}
+
+// Fallback demo tetap tersedia saat API kosong, error, atau belum dikonfigurasi.
+export const FALLBACK_BLOCKS: WallBlock[] = DUMMY_BLOCKS.map((block) => ({
+  id: block.id,
+  name: block.name,
+  description: null,
+  color: block.color,
+  x: block.cols[0],
+  y: block.rows[0],
+  w: block.cols[1] - block.cols[0] + 1,
+  h: block.rows[1] - block.rows[0] + 1,
+  link: block.url,
+  logo_url: null,
+  contract_address: null,
+  author: block.author,
+  kind: block.kind,
+}));

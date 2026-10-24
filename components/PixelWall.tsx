@@ -1,7 +1,7 @@
 'use client';
 
 import { memo, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { DUMMY_BLOCKS, GRID_SIZE, type DummyBlock } from '@/lib/blocks';
+import { GRID_SIZE, type WallBlock } from '@/lib/blocks';
 
 interface ViewState {
   scale: number;
@@ -40,19 +40,20 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const useIsomorphicLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
-const BlockLayer = memo(function BlockLayer() {
+const BlockLayer = memo(function BlockLayer({ blocks }: { blocks: WallBlock[] }) {
   return (
     <>
-      {DUMMY_BLOCKS.map((block) => {
-        const x = block.cols[0] * BASE_CELL;
-        const y = block.rows[0] * BASE_CELL;
-        const width = (block.cols[1] - block.cols[0] + 1) * BASE_CELL;
-        const height = (block.rows[1] - block.rows[0] + 1) * BASE_CELL;
+      {blocks.map((block) => {
+        const x = block.x * BASE_CELL;
+        const y = block.y * BASE_CELL;
+        const width = block.w * BASE_CELL;
+        const height = block.h * BASE_CELL;
 
         return (
           <div
             key={block.id}
             data-block-id={block.id}
+            data-has-logo={block.logo_url ? 'true' : undefined}
             className="wall-block"
             style={{
               left: `${x}px`,
@@ -62,6 +63,16 @@ const BlockLayer = memo(function BlockLayer() {
               backgroundColor: block.color,
             }}
           >
+            {block.logo_url ? (
+              <img
+                src={block.logo_url}
+                alt=""
+                className="wall-block-logo"
+                draggable={false}
+                decoding="async"
+                loading="lazy"
+              />
+            ) : null}
             <span className="wall-block-label">{block.name}</span>
           </div>
         );
@@ -70,7 +81,7 @@ const BlockLayer = memo(function BlockLayer() {
   );
 });
 
-export default function PixelWall() {
+export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<ViewState>({ scale: 1, x: 0, y: 0 });
@@ -82,9 +93,17 @@ export default function PixelWall() {
   const dragRef = useRef<DragState | null>(null);
   const pinchRef = useRef<PinchState | null>(null);
   const interactedRef = useRef(false);
+  const blocksRef = useRef(blocks);
 
   const [zoomPercent, setZoomPercent] = useState(100);
-  const [selected, setSelected] = useState<DummyBlock | null>(null);
+  const [selected, setSelected] = useState<WallBlock | null>(null);
+
+  useEffect(() => {
+    blocksRef.current = blocks;
+    setSelected((current) =>
+      current ? blocks.find((block) => block.id === current.id) ?? null : null,
+    );
+  }, [blocks]);
 
   const applyTransform = () => {
     const board = boardRef.current;
@@ -174,7 +193,7 @@ export default function PixelWall() {
     const hit = document.elementFromPoint(clientX, clientY);
     const target = hit instanceof Element ? hit.closest<HTMLElement>('[data-block-id]') : null;
     const id = target?.dataset.blockId;
-    return id ? DUMMY_BLOCKS.find((block) => block.id === id) ?? null : null;
+    return id ? blocksRef.current.find((block) => block.id === id) ?? null : null;
   };
 
   useIsomorphicLayoutEffect(() => {
@@ -408,7 +427,7 @@ export default function PixelWall() {
           className="wall-board absolute left-0 top-0 h-[1000px] w-[1000px] origin-top-left"
         >
           <div className="wall-grid pointer-events-none absolute inset-0" />
-          <BlockLayer />
+          <BlockLayer blocks={blocks} />
         </div>
       </div>
 
@@ -421,16 +440,20 @@ export default function PixelWall() {
           <span className="h-4 w-4 shrink-0 rounded-sm border-2 border-ink" style={{ background: selected.color }} />
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-bold" style={{ color: selected.color }}>{selected.name}</div>
-            <div className="truncate text-xs text-ink/60">by {selected.author}</div>
+            <div className="truncate text-xs text-ink/60">
+              {selected.description || (selected.author ? `by ${selected.author}` : 'Slot komunitas')}
+            </div>
           </div>
-          <a
-            href={selected.url}
-            target="_blank"
-            rel="noopener noreferrer nofollow"
-            className="btn-accent shrink-0 px-3 py-1 text-xs"
-          >
-            Buka
-          </a>
+          {selected.link ? (
+            <a
+              href={selected.link}
+              target="_blank"
+              rel="noopener noreferrer nofollow"
+              className="btn-accent shrink-0 px-3 py-1 text-xs"
+            >
+              Buka
+            </a>
+          ) : null}
           <button
             onClick={() => setSelected(null)}
             aria-label="Tutup detail"
