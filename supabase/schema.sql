@@ -27,7 +27,9 @@ create table if not exists public.slots (
     int4range(x, x + w) with &&,
     int4range(y, y + h) with &&
   ) where (status in ('pending', 'approved')),
+  constraint slots_name_len check (char_length(project_name) <= 40),
   constraint slots_name_not_blank check (char_length(btrim(project_name)) > 0),
+  constraint slots_link_https check (link ~* '^https://'),
   constraint slots_link_len check (char_length(link) <= 300),
   constraint slots_logo_https check (logo_url is null or logo_url ~* '^https://'),
   constraint slots_contract_fmt check (
