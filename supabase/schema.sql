@@ -10,9 +10,9 @@ create table if not exists public.slots (
   y integer not null check (y >= 0),
   w integer not null check (w > 0),
   h integer not null check (h > 0),
-  project_name text not null check (char_length(project_name) between 1 and 40),
+  project_name text not null,
   description text check (description is null or char_length(description) <= 140),
-  link text not null check (link ~* '^https://'),
+  link text not null,
   logo_url text,
   color text not null check (color ~ '^#[0-9a-fA-F]{6}$'),
   contract_address text,
@@ -22,7 +22,20 @@ create table if not exists public.slots (
   constraint slots_allowed_size check (
     (w = 3 and h = 3) or (w = 5 and h = 5) or (w = 10 and h = 10)
   ),
-  constraint slots_inside_grid check (x + w <= 100 and y + h <= 100)
+  constraint slots_inside_grid check (x + w <= 100 and y + h <= 100),
+  constraint slots_no_overlap exclude using gist (
+    int4range(x, x + w) with &&,
+    int4range(y, y + h) with &&
+  ) where (status in ('pending', 'approved')),
+  constraint slots_name_not_blank check (char_length(btrim(project_name)) > 0),
+  constraint slots_link_len check (char_length(link) <= 300),
+  constraint slots_logo_https check (logo_url is null or logo_url ~* '^https://'),
+  constraint slots_contract_fmt check (
+    contract_address is null or contract_address ~ '^0x[0-9a-fA-F]{40}$'
+  ),
+  constraint slots_wallet_fmt check (
+    wallet is null or wallet ~ '^0x[0-9a-fA-F]{40}$'
+  )
 );
 
 create index if not exists slots_status_created_at_idx
@@ -67,8 +80,5 @@ set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
 
-drop policy if exists "Public read logos" on storage.objects;
-create policy "Public read logos"
-  on storage.objects
-  for select
-  using (bucket_id = 'logos');
+-- Bucket is public; objects are readable without a policy.
+-- The "Public read logos" policy is intentionally not created.

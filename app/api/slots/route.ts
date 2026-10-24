@@ -111,8 +111,8 @@ export async function POST(request: Request) {
   }
 
   const link = parseOptionalText(formData.get('link'));
-  if (!link || !isHttpsUrl(link)) {
-    return jsonError('link wajib menggunakan https://', 400);
+  if (!link || !isHttpsUrl(link) || link.length > 300) {
+    return jsonError('link wajib https://, maksimal 300 karakter.', 400);
   }
 
   const color = parseOptionalText(formData.get('color'));
@@ -121,8 +121,13 @@ export async function POST(request: Request) {
   }
 
   const contractAddress = parseOptionalText(formData.get('contract_address'));
-  if (contractAddress && contractAddress.length > 120) {
-    return jsonError('contract_address terlalu panjang.', 400);
+  if (contractAddress && !/^0x[0-9a-fA-F]{40}$/.test(contractAddress)) {
+    return jsonError('contract_address harus format 0x + 40 hex.', 400);
+  }
+
+  const wallet = parseOptionalText(formData.get('wallet'));
+  if (wallet && !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
+    return jsonError('wallet harus format 0x + 40 hex.', 400);
   }
 
   const logo = formData.get('logo');
@@ -166,7 +171,9 @@ export async function POST(request: Request) {
     return jsonError('Server sedang sibuk. Coba lagi.', 500);
   }
 
+  let logoPath: string | null = null;
   try {
+    // Fast pre-check overlap (cheap, not authoritative)
     const { data: occupied, error: overlapError } = await supabase
       .from('slots')
       .select('x,y,w,h')
@@ -180,12 +187,12 @@ export async function POST(request: Request) {
     );
 
     if (overlaps) {
-      return jsonError('Slot sudah dipakai. Pilih area lain.', 409);
+      return jsonError('Area sudah terisi, pilih posisi lain', 409);
     }
 
     const extension =
       logoType === 'image/png' ? 'png' : logoType === 'image/jpeg' ? 'jpg' : 'webp';
-    const logoPath = `slots/${crypto.randomUUID()}.${extension}`;
+    logoPath = `slots/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
       .from('logos')
@@ -213,14 +220,21 @@ export async function POST(request: Request) {
         logo_url: logoUrl,
         color,
         contract_address: contractAddress,
-        wallet: null,
+        wallet,
         status: 'pending',
       })
       .select(PUBLIC_SLOT_FIELDS)
       .single();
 
     if (insertError) {
-      await supabase.storage.from('logos').remove([logoPath]);
+      // Clean up uploaded logo on any insert failure
+      if (logoPath) {
+        await supabase.storage.from('logos').remove([logoPath]);
+      }
+      // Handle exclusion violation (overlap) from DB constraint
+      if (insertError.code === '23P01') {
+        return jsonError('Area sudah terisi, pilih posisi lain', 409);
+      }
       throw insertError;
     }
 
@@ -236,6 +250,14 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('POST /api/slots failed', error);
+    // Clean up logo if we uploaded but something else failed
+    if (logoPath) {
+      try {
+        await supabase.storage.from('logos').remove([logoPath]);
+      } catch (cleanupError) {
+        console.error('Failed to cleanup logo after error', cleanupError);
+      }
+    }
     return jsonError('Gagal menyimpan pengajuan.', 500);
   }
 }
