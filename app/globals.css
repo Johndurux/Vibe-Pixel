@@ -127,7 +127,7 @@ body {
 }
 
 .wall-grid {
-  /* Satu elemen: garis mayor tiap 10 blok, minor lebih samar tiap 1 blok. */
+  /* One element: major lines every 10 blocks, fainter minor lines every block. */
   background-image:
     linear-gradient(to right, rgba(22, 20, 15, 0.16) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(22, 20, 15, 0.16) 1px, transparent 1px),

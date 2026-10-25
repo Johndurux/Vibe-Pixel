@@ -10,7 +10,23 @@ const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600'
 
 export const metadata: Metadata = {
   title: 'Vibe Pixel Wall',
-  description: 'Papan pixel 100x100 untuk karyamu: klaim sel, catat, dan tampilkan.',
+  description:
+    'A 100x100 pixel board for builders. Claim a block, pin your project, and show it off.',
+  openGraph: {
+    title: 'Vibe Pixel Wall',
+    description:
+      'A 100x100 pixel board for builders. Claim a block, pin your project, and show it off.',
+    url: 'https://vibe-pixel-wall.vercel.app',
+    siteName: 'Vibe Pixel Wall',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Vibe Pixel Wall',
+    description:
+      'A 100x100 pixel board for builders. Claim a block, pin your project, and show it off.',
+  },
 };
 
 export const viewport: Viewport = {
@@ -20,7 +36,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="id">
+    <html lang="en">
       <body
         className={`${anton.variable} ${archivoBlack.variable} ${spaceMono.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
         style={{ fontFamily: `var(--font-inter), system-ui, sans-serif` }}

@@ -396,14 +396,14 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
     <div className="flex h-full min-h-0 w-full flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={() => zoomAtCenter(1.4)} aria-label="Perbesar" className="btn-sticker">+</button>
-          <button onClick={() => zoomAtCenter(1 / 1.4)} aria-label="Perkecil" className="btn-sticker">−</button>
+          <button onClick={() => zoomAtCenter(1.4)} aria-label="Zoom in" className="btn-sticker">+</button>
+          <button onClick={() => zoomAtCenter(1 / 1.4)} aria-label="Zoom out" className="btn-sticker">−</button>
           <button
             onClick={() => {
               interactedRef.current = false;
               fitView();
             }}
-            aria-label="Reset tampilan"
+            aria-label="Reset view"
             className="btn-sticker"
           >
             ⟲
@@ -441,7 +441,7 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-bold" style={{ color: selected.color }}>{selected.name}</div>
             <div className="truncate text-xs text-ink/75">
-              {selected.description || (selected.author ? `by ${selected.author}` : 'Slot komunitas')}
+              {selected.description || (selected.author ? `by ${selected.author}` : 'Community slot')}
             </div>
           </div>
           {selected.link ? (
@@ -451,12 +451,12 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
               rel="noopener noreferrer nofollow"
               className="btn-accent shrink-0 px-3 py-1 text-xs"
             >
-              Buka
+              Open
             </a>
           ) : null}
           <button
             onClick={() => setSelected(null)}
-            aria-label="Tutup detail"
+            aria-label="Close details"
             className="shrink-0 text-lg font-bold leading-none text-ink/50 hover:text-accent"
           >
             ×

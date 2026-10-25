@@ -82,7 +82,7 @@ export async function POST(request: Request) {
   try {
     formData = await request.formData();
   } catch {
-    return jsonError('Body harus multipart/form-data.', 400);
+    return jsonError('Body must be multipart/form-data.', 400);
   }
 
   const x = parseInteger(formData.get('x'));
@@ -91,57 +91,57 @@ export async function POST(request: Request) {
   const h = parseInteger(formData.get('h'));
 
   if (x === null || y === null || w === null || h === null) {
-    return jsonError('x, y, w, h harus bilangan bulat.', 400);
+    return jsonError('x, y, w, and h must be integers.', 400);
   }
   if (!isAllowedSize(w, h)) {
-    return jsonError('Ukuran slot harus 3x3, 5x5, atau 10x10.', 400);
+    return jsonError('Slot size must be 3x3, 5x5, or 10x10.', 400);
   }
   if (!isInsideGrid(x, y, w, h)) {
-    return jsonError('Slot harus berada di dalam grid 100x100.', 400);
+    return jsonError('Slot must be inside the 100x100 grid.', 400);
   }
 
   const projectName = parseOptionalText(formData.get('project_name'));
   if (!projectName || projectName.length > 40) {
-    return jsonError('project_name wajib diisi, maksimal 40 karakter.', 400);
+    return jsonError('project_name is required and must be 40 characters or fewer.', 400);
   }
 
   const description = parseOptionalText(formData.get('description'));
   if (description && description.length > 140) {
-    return jsonError('description maksimal 140 karakter.', 400);
+    return jsonError('description must be 140 characters or fewer.', 400);
   }
 
   const link = parseOptionalText(formData.get('link'));
   if (!link || !isHttpsUrl(link) || link.length > 300) {
-    return jsonError('link wajib https://, maksimal 300 karakter.', 400);
+    return jsonError('link must use https:// and be 300 characters or fewer.', 400);
   }
 
   const color = parseOptionalText(formData.get('color'));
   if (!color || !isHexColor(color)) {
-    return jsonError('color harus format hex #RRGGBB.', 400);
+    return jsonError('color must be a hex value in #RRGGBB format.', 400);
   }
 
   const contractAddress = parseOptionalText(formData.get('contract_address'));
   if (contractAddress && !/^0x[0-9a-fA-F]{40}$/.test(contractAddress)) {
-    return jsonError('contract_address harus format 0x + 40 hex.', 400);
+    return jsonError('contract_address must be 0x followed by 40 hex characters.', 400);
   }
 
   const wallet = parseOptionalText(formData.get('wallet'));
   if (wallet && !/^0x[0-9a-fA-F]{40}$/.test(wallet)) {
-    return jsonError('wallet harus format 0x + 40 hex.', 400);
+    return jsonError('wallet must be 0x followed by 40 hex characters.', 400);
   }
 
   const logo = formData.get('logo');
   if (!(logo instanceof File) || logo.size === 0) {
-    return jsonError('logo wajib diunggah.', 400);
+    return jsonError('logo is required.', 400);
   }
   if (logo.size > MAX_LOGO_BYTES) {
-    return jsonError('logo maksimal 200KB.', 413);
+    return jsonError('logo must be 200KB or smaller.', 413);
   }
 
   const logoBytes = new Uint8Array(await logo.arrayBuffer());
   const logoType = detectLogoType(logoBytes);
   if (!logoType) {
-    return jsonError('logo harus PNG, JPG, atau WEBP.', 415);
+    return jsonError('logo must be PNG, JPG, or WEBP.', 415);
   }
 
   let supabase: ReturnType<typeof getSupabaseAdmin>;
@@ -149,14 +149,14 @@ export async function POST(request: Request) {
     supabase = getSupabaseAdmin();
   } catch (error) {
     console.error('POST /api/slots is missing Supabase env', error);
-    return jsonError('Server belum dikonfigurasi.', 500);
+    return jsonError('Server is not configured.', 500);
   }
 
   const ipHash = getIpHash(request);
   try {
     if (await isRateLimited(supabase, ipHash)) {
       return NextResponse.json(
-        { error: 'Terlalu banyak pengajuan. Coba lagi dalam 1 jam.' },
+        { error: 'Too many submissions. Try again in 1 hour.' },
         {
           status: 429,
           headers: {
@@ -168,7 +168,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error('POST /api/slots rate-limit check failed', error);
-    return jsonError('Server sedang sibuk. Coba lagi.', 500);
+    return jsonError('Server is busy. Try again.', 500);
   }
 
   let logoPath: string | null = null;
@@ -187,7 +187,7 @@ export async function POST(request: Request) {
     );
 
     if (overlaps) {
-      return jsonError('Area sudah terisi, pilih posisi lain', 409);
+      return jsonError('That area is already taken. Pick another spot.', 409);
     }
 
     const extension =
@@ -233,7 +233,7 @@ export async function POST(request: Request) {
       }
       // Handle exclusion violation (overlap) from DB constraint
       if (insertError.code === '23P01') {
-        return jsonError('Area sudah terisi, pilih posisi lain', 409);
+        return jsonError('That area is already taken. Pick another spot.', 409);
       }
       throw insertError;
     }
@@ -258,6 +258,6 @@ export async function POST(request: Request) {
         console.error('Failed to cleanup logo after error', cleanupError);
       }
     }
-    return jsonError('Gagal menyimpan pengajuan.', 500);
+    return jsonError('Failed to save submission.', 500);
   }
 }

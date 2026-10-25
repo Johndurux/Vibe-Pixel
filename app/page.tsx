@@ -24,10 +24,10 @@ export default function Home() {
             <span className="testnet-sticker">TESTNET</span>
           </div>
           <p className="mt-3 max-w-xl text-base font-semibold text-ink">
-            Tempel karyamu di papan pixel komunitas.
+            Pin your project to the community pixel wall.
           </p>
           <p className="mt-1 max-w-xl text-sm text-ink/75">
-            Papan buletin builder · 100×100 sel · satu blok, satu cerita.
+            Community builder bulletin board · 100×100 cells · one block, one story.
           </p>
         </div>
       </header>
@@ -47,7 +47,7 @@ export default function Home() {
               {!loading && !hasApprovedSlots ? (
                 <div className="empty-wall-state" aria-hidden="true">
                   <div className="empty-wall-note">
-                    Belum ada project. Jadilah yang pertama nempel!
+                    No projects yet. Be the first to pin yours!
                   </div>
                 </div>
               ) : null}
@@ -57,12 +57,12 @@ export default function Home() {
           <div className="mt-4 flex justify-center sm:justify-start">
             <div
               className="counter-sticker"
-              aria-label={`${filledCells} dari ${TOTAL_CELLS} blok terisi`}
+              aria-label={`${filledCells.toLocaleString('en-US')} of ${TOTAL_CELLS.toLocaleString('en-US')} blocks filled`}
             >
               <div className="flex items-baseline justify-between gap-4">
                 <span>
-                  <span className="counter-value">{filledCells.toLocaleString('id-ID')}</span>{' '}
-                  / {TOTAL_CELLS.toLocaleString('id-ID')} blok terisi
+                  <span className="counter-value">{filledCells.toLocaleString('en-US')}</span>{' '}
+                  / {TOTAL_CELLS.toLocaleString('en-US')} blocks filled
                 </span>
                 <span className="text-ink/75">{Math.round(filledPercent)}%</span>
               </div>
@@ -81,7 +81,7 @@ export default function Home() {
       <footer className="border-t border-ink/20 bg-paper/50 px-4 py-4 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <p className="font-mono-ui text-xs text-ink">
-            Dibangun untuk komunitas vibe/vibe ·{' '}
+            Built for the vibe/vibe community ·{' '}
             <a
               href="https://testnet.vibevibe.fun"
               target="_blank"

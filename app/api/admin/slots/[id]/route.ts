@@ -22,20 +22,20 @@ export async function PATCH(
   if (!isAdminRequest(request)) return jsonError('Unauthorized', 401);
 
   const { id } = await context.params;
-  if (!UUID_PATTERN.test(id)) return jsonError('id slot tidak valid.', 400);
+  if (!UUID_PATTERN.test(id)) return jsonError('Invalid slot id.', 400);
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return jsonError('Body harus JSON.', 400);
+    return jsonError('Body must be JSON.', 400);
   }
 
   const status =
     body && typeof body === 'object' ? (body as { status?: unknown }).status : undefined;
 
   if (status !== 'approved' && status !== 'rejected') {
-    return jsonError('status harus approved atau rejected.', 400);
+    return jsonError('status must be approved or rejected.', 400);
   }
 
   try {
@@ -48,7 +48,7 @@ export async function PATCH(
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return jsonError('Slot tidak ditemukan.', 404);
+    if (!data) return jsonError('Slot not found.', 404);
 
     // The public list is cached for 30s; make moderation changes show up now.
     revalidateTag('approved-slots', 'max');
@@ -59,6 +59,6 @@ export async function PATCH(
     );
   } catch (error) {
     console.error('PATCH /api/admin/slots/[id] failed', error);
-    return jsonError('Gagal memperbarui slot.', 500);
+    return jsonError('Failed to update slot.', 500);
   }
 }

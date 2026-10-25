@@ -21,7 +21,7 @@ export async function GET(request: Request) {
 
   if (!isSlotStatus(status)) {
     return NextResponse.json(
-      { error: 'status harus pending, approved, atau rejected.' },
+      { error: 'status must be pending, approved, or rejected.' },
       { status: 400, headers: { 'Cache-Control': 'no-store' } },
     );
   }
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('GET /api/admin/slots failed', error);
     return NextResponse.json(
-      { error: 'Gagal memuat slot.' },
+      { error: 'Failed to load slots.' },
       { status: 500, headers: { 'Cache-Control': 'no-store' } },
     );
   }

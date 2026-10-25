@@ -94,7 +94,7 @@ async function clickFirstBlock(page) {
 }
 
 async function closeDetail(page) {
-  await page.getByLabel('Tutup detail').click();
+  await page.getByLabel('Close details').click();
   await page.getByTestId('selected-detail').waitFor({ state: 'detached' });
 }
 
@@ -140,8 +140,8 @@ async function assertFitted(page, label) {
     assert.equal(metrics.emptyState, false, `${label}: empty state should be hidden`);
   } else {
     assert.equal(metrics.emptyState, true, `${label}: empty state missing`);
-    assert.match(metrics.emptyText, /Belum ada project/, `${label}: empty state text missing`);
-    assert.match(metrics.counterText, /^0 \/ 10\.000 blok terisi/, `${label}: counter should be 0`);
+    assert.match(metrics.emptyText, /No projects yet/, `${label}: empty state text missing`);
+    assert.match(metrics.counterText, /^0 \/ 10,000 blocks filled/, `${label}: counter should be 0`);
   }
 
   return metrics;
@@ -184,7 +184,7 @@ async function main() {
     if (clickedDesktop) await closeDetail(page);
 
     // Zoom until the grid and heavier block treatment turn on.
-    for (let i = 0; i < 4; i++) await page.getByLabel('Perbesar').click();
+    for (let i = 0; i < 4; i++) await page.getByLabel('Zoom in').click();
     await page.waitForFunction(
       () => document.querySelector('[data-testid="wall-board"]')?.dataset.zoomed === 'true',
       undefined,
@@ -217,7 +217,7 @@ async function main() {
     assert.notEqual(beforePan, afterPan, 'pan did not move the board');
 
     // Reset returns to fit.
-    await page.getByLabel('Reset tampilan').click();
+    await page.getByLabel('Reset view').click();
     await page.waitForFunction(
       fit => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === fit,
       desktopFit,
@@ -226,7 +226,7 @@ async function main() {
     await assertFitted(page, 'desktop reset');
 
     // Max zoom stays bounded at 400%.
-    for (let i = 0; i < 10; i++) await page.getByLabel('Perbesar').click();
+    for (let i = 0; i < 10; i++) await page.getByLabel('Zoom in').click();
     await page.waitForFunction(
       () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '400%',
       undefined,

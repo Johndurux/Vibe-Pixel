@@ -1,9 +1,9 @@
 export const GRID_SIZE = 100;
 
-// 1 blok = 1 sel grid. Total blok pada wall 100x100.
+// 1 block = 1 grid cell. The wall is 100x100 blocks.
 export const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 
-/** Slot publik yang dikirim GET /api/slots (tanpa wallet). */
+/** Public slot returned by GET /api/slots (no wallet). */
 export interface PublicSlot {
   id: string;
   x: number;
@@ -18,7 +18,7 @@ export interface PublicSlot {
   contract_address: string | null;
 }
 
-/** Bentuk seragam yang dipakai renderer untuk slot API. */
+/** Uniform shape used by the renderer for API slots. */
 export interface WallBlock {
   id: string;
   name: string;

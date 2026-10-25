@@ -46,10 +46,10 @@ try {
   const detail = page.getByTestId('selected-detail');
   await detail.waitFor({ state: 'visible' });
   assert.match(await detail.innerText(), /VibeLaunch/);
-  await page.getByLabel('Tutup detail').click();
+  await page.getByLabel('Close details').click();
   await page.screenshot({ path: `${OUT}/live-desktop-1440.png`, fullPage: true });
 
-  await page.getByLabel('Perbesar').click();
+  await page.getByLabel('Zoom in').click();
   await page.waitForFunction(
     () => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === '140%',
     undefined,
