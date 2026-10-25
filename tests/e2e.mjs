@@ -8,7 +8,6 @@ import { chromium } from 'playwright';
 const PORT = Number(process.env.E2E_PORT || 4310);
 const BASE = `http://127.0.0.1:${PORT}`;
 const OUT = 'screenshots';
-const BLOCK_ID = 'b1';
 
 if (!existsSync('.next/BUILD_ID')) {
   console.error('No production build found. Run `npm run build` first.');
@@ -52,7 +51,8 @@ async function boardMetrics(page) {
     const frame = document.querySelector('.cork-frame');
     const block = document.querySelector('[data-block-id]');
     const grid = document.querySelector('.wall-grid');
-    if (!board || !viewport || !frame || !block || !grid) return null;
+    const emptyNote = document.querySelector('.empty-wall-note');
+    if (!board || !viewport || !frame || !grid) return null;
 
     const box = board.getBoundingClientRect();
     return {
@@ -62,30 +62,51 @@ async function boardMetrics(page) {
       blockCount: document.querySelectorAll('[data-block-id]').length,
       boardDom: board.querySelectorAll('*').length,
       gridVisibility: getComputedStyle(grid).visibility,
-      borderWidth: getComputedStyle(block).borderTopWidth,
-      shadow: getComputedStyle(block).boxShadow,
+      borderWidth: block ? getComputedStyle(block).borderTopWidth : null,
+      shadow: block ? getComputedStyle(block).boxShadow : null,
       zoomed: board.dataset.zoomed,
       labels: board.dataset.labels,
       zoom: document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim(),
       overflow: document.documentElement.scrollWidth - window.innerWidth,
       canvasCount: document.querySelectorAll('canvas').length,
+      emptyState: Boolean(emptyNote),
+      emptyText: emptyNote?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      counterText:
+        document.querySelector('.counter-sticker')?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
     };
   });
 }
 
-async function clickBlock(page) {
-  const block = page.locator(`[data-block-id="${BLOCK_ID}"]`);
+async function clickFirstBlock(page) {
+  const block = page.locator('[data-block-id]').first();
+  if ((await block.count()) === 0) {
+    await page.locator('.empty-wall-note').waitFor({ state: 'visible', timeout: 5000 });
+    return false;
+  }
+
   const box = await block.boundingBox();
   assert.ok(box, 'block has no bounding box');
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   const detail = page.getByTestId('selected-detail');
   await detail.waitFor({ state: 'visible', timeout: 5000 });
-  assert.match(await detail.innerText(), /VibeLaunch/);
+  assert.ok((await detail.innerText()).trim().length > 0, 'selected detail is empty');
+  return true;
 }
 
 async function closeDetail(page) {
   await page.getByLabel('Tutup detail').click();
   await page.getByTestId('selected-detail').waitFor({ state: 'detached' });
+}
+
+async function waitForWallData(page) {
+  await page.waitForFunction(
+    () =>
+      Boolean(
+        document.querySelector('.empty-wall-state') || document.querySelector('[data-block-id]'),
+      ),
+    undefined,
+    { timeout: 15000 },
+  );
 }
 
 async function assertFitted(page, label) {
@@ -103,7 +124,6 @@ async function assertFitted(page, label) {
   const metrics = await boardMetrics(page);
   assert.ok(metrics, `${label}: board metrics missing`);
   assert.equal(metrics.canvasCount, 0, `${label}: canvas element found`);
-  assert.equal(metrics.blockCount, 15, `${label}: expected 15 blocks`);
   assert.ok(metrics.boardDom < 200, `${label}: board DOM too large (${metrics.boardDom})`);
   assert.ok(
     metrics.board.width <= metrics.viewport.width + 1 &&
@@ -111,9 +131,19 @@ async function assertFitted(page, label) {
     `${label}: board does not fit (${metrics.board.width}x${metrics.board.height} in ${metrics.viewport.width}x${metrics.viewport.height})`,
   );
   assert.ok(metrics.board.width > 0 && metrics.board.height > 0, `${label}: board has no size`);
-  assert.equal(metrics.gridVisibility, 'hidden', `${label}: grid visible at fitted scale`);
-  assert.equal(metrics.borderWidth, '1px', `${label}: fitted block border should be 1px`);
+  assert.equal(metrics.gridVisibility, 'visible', `${label}: grid should be visible`);
   assert.equal(metrics.overflow, 0, `${label}: horizontal document overflow`);
+
+  if (metrics.blockCount > 0) {
+    assert.equal(metrics.borderWidth, '2px', `${label}: block border should be 2px`);
+    assert.match(metrics.shadow, /2px 2px 0px 0px/, `${label}: block shadow should be hard`);
+    assert.equal(metrics.emptyState, false, `${label}: empty state should be hidden`);
+  } else {
+    assert.equal(metrics.emptyState, true, `${label}: empty state missing`);
+    assert.match(metrics.emptyText, /Belum ada project/, `${label}: empty state text missing`);
+    assert.match(metrics.counterText, /^0 \/ 10\.000 blok terisi/, `${label}: counter should be 0`);
+  }
+
   return metrics;
 }
 
@@ -137,8 +167,9 @@ async function main() {
   page.on('pageerror', err => errors.push(`pageerror: ${err.message}`));
 
   try {
-    await page.goto(BASE, { waitUntil: 'networkidle' });
+    await page.goto(BASE, { waitUntil: 'domcontentloaded' });
     await page.getByTestId('wall-board').waitFor({ state: 'visible' });
+    await waitForWallData(page);
 
     const desktop = await assertFitted(page, 'desktop');
     assert.ok(desktop.frame.width <= 1021 && desktop.frame.width > 900, `desktop frame width ${desktop.frame.width}`);
@@ -148,9 +179,9 @@ async function main() {
     );
     const desktopFit = desktop.zoom;
 
-    await clickBlock(page);
+    const clickedDesktop = await clickFirstBlock(page);
     await page.screenshot({ path: `${OUT}/desktop-1440.png`, fullPage: true });
-    await closeDetail(page);
+    if (clickedDesktop) await closeDetail(page);
 
     // Zoom until the grid and heavier block treatment turn on.
     for (let i = 0; i < 4; i++) await page.getByLabel('Perbesar').click();
@@ -162,8 +193,10 @@ async function main() {
     const zoomed = await boardMetrics(page);
     assert.ok(zoomed, 'zoomed metrics missing');
     assert.equal(zoomed.gridVisibility, 'visible', 'grid should be visible at >= 200%');
-    assert.equal(zoomed.borderWidth, '2px', 'zoomed block border should be 2px');
-    assert.match(zoomed.shadow, /2px 2px 0px 0px/, `unexpected zoomed shadow: ${zoomed.shadow}`);
+    if (zoomed.blockCount > 0) {
+      assert.equal(zoomed.borderWidth, '2px', 'zoomed block border should be 2px');
+      assert.match(zoomed.shadow, /2px 2px 0px 0px/, `unexpected zoomed shadow: ${zoomed.shadow}`);
+    }
     assert.ok(zoomed.board.width > zoomed.viewport.width, 'zoomed board should be pannable');
     await page.screenshot({ path: `${OUT}/desktop-zoom.png`, fullPage: true });
 
@@ -183,7 +216,7 @@ async function main() {
     const afterPan = await page.getByTestId('wall-board').evaluate(el => el.style.transform);
     assert.notEqual(beforePan, afterPan, 'pan did not move the board');
 
-    // Reset returns to fit and hides the grid again.
+    // Reset returns to fit.
     await page.getByLabel('Reset tampilan').click();
     await page.waitForFunction(
       fit => document.querySelector('[data-testid="zoom-level"]')?.textContent?.trim() === fit,
@@ -205,24 +238,38 @@ async function main() {
 
     // Tablet: auto-fit keeps the whole board inside the viewport.
     await page.setViewportSize({ width: 768, height: 900 });
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByTestId('wall-board').waitFor({ state: 'visible' });
+    await waitForWallData(page);
     const tablet = await assertFitted(page, 'tablet');
     assert.ok(tablet.board.width <= 768 - 16, `tablet board overflows: ${tablet.board.width}`);
-    await clickBlock(page);
+    const clickedTablet = await clickFirstBlock(page);
     await page.screenshot({ path: `${OUT}/tablet-768.png`, fullPage: true });
+    if (clickedTablet) await closeDetail(page);
 
     // Mobile: no horizontal document scroll, board still tappable.
     await page.setViewportSize({ width: 375, height: 800 });
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded' });
     await page.getByTestId('wall-board').waitFor({ state: 'visible' });
+    await waitForWallData(page);
     const mobile = await assertFitted(page, 'mobile');
     assert.ok(mobile.board.width <= 375 - 16, `mobile board overflows: ${mobile.board.width}`);
-    await clickBlock(page);
+    const clickedMobile = await clickFirstBlock(page);
     await page.screenshot({ path: `${OUT}/mobile-375.png`, fullPage: true });
+    if (clickedMobile) await closeDetail(page);
+
+    // Required phone widths from the brief.
+    for (const width of [360, 412]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await page.getByTestId('wall-board').waitFor({ state: 'visible' });
+      await waitForWallData(page);
+      const metrics = await assertFitted(page, `mobile-${width}`);
+      assert.equal(metrics.overflow, 0, `mobile-${width}: horizontal overflow`);
+    }
 
     assert.deepEqual(errors, [], `browser errors:\n${errors.join('\n')}`);
-    console.log('E2E OK: DOM renderer fits, zooms, pans, and opens the block detail on desktop/tablet/mobile');
+    console.log('E2E OK: corkboard wall fits, grid/zoom/pan work, empty state and counters are correct on desktop/tablet/mobile');
   } finally {
     await browser.close();
   }

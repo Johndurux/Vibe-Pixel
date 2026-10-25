@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import {
-  FALLBACK_BLOCKS,
   slotToWallBlock,
   type PublicSlot,
   type WallBlock,
@@ -35,12 +34,21 @@ function getSlots(payload: unknown): unknown[] {
   return [];
 }
 
-export function useWallBlocks(): WallBlock[] {
-  const [blocks, setBlocks] = useState<WallBlock[]>(FALLBACK_BLOCKS);
+export interface WallData {
+  blocks: WallBlock[];
+  loading: boolean;
+}
+
+export function useWallBlocks(): WallData {
+  const [blocks, setBlocks] = useState<WallBlock[]>([]);
+  const [loading, setLoading] = useState(Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
 
   useEffect(() => {
-    // Local/demo builds without Supabase simply keep the bundled fallback.
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) return;
+    // Local/demo builds without Supabase stay empty instead of showing dummy slots.
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      setLoading(false);
+      return;
+    }
 
     const controller = new AbortController();
     let active = true;
@@ -55,16 +63,21 @@ export function useWallBlocks(): WallBlock[] {
         // Always consume the body so failed requests do not leave a pending
         // browser network stream (important for network-idle tooling).
         const payload: unknown = await response.json().catch(() => null);
-        if (!response.ok) return;
+        if (!active) return;
+
+        if (!response.ok) {
+          setBlocks([]);
+          return;
+        }
 
         const slots = getSlots(payload).filter(isPublicSlot).map(slotToWallBlock);
-
-        // Empty/error responses intentionally keep the bundled dummy fallback.
-        if (active && slots.length > 0) setBlocks(slots);
+        setBlocks(slots);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') return;
-        // Do not break the wall when the API is not configured yet.
-        console.warn('Using fallback wall blocks:', error);
+        // Keep the wall empty when the API is unavailable.
+        if (active) setBlocks([]);
+      } finally {
+        if (active) setLoading(false);
       }
     }
 
@@ -76,5 +89,5 @@ export function useWallBlocks(): WallBlock[] {
     };
   }, []);
 
-  return blocks;
+  return { blocks, loading };
 }
