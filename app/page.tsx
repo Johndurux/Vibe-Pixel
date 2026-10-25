@@ -2,6 +2,7 @@
 
 import PixelWall from '@/components/PixelWall';
 import { TOTAL_CELLS } from '@/lib/blocks';
+import { OFFICIAL_LINKS } from '@/lib/links';
 import { useWallBlocks } from '@/lib/useWallBlocks';
 
 export default function Home() {
@@ -54,7 +55,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-4 flex justify-center sm:justify-start">
+          <div className="mt-4 flex flex-col items-center gap-3 sm:items-start">
             <div
               className="counter-sticker"
               aria-label={`${filledCells.toLocaleString('en-US')} of ${TOTAL_CELLS.toLocaleString('en-US')} blocks filled`}
@@ -73,6 +74,15 @@ export default function Home() {
                 />
               </div>
             </div>
+            <a
+              href={OFFICIAL_LINKS.app}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open vibe/vibe testnet in a new tab"
+              className="btn-paper btn-secondary"
+            >
+              Open vibe/vibe testnet
+            </a>
           </div>
         </div>
       </section>
@@ -83,13 +93,55 @@ export default function Home() {
           <p className="font-mono-ui text-xs text-ink">
             Built for the vibe/vibe community ·{' '}
             <a
-              href="https://testnet.vibevibe.fun"
+              href={OFFICIAL_LINKS.app}
               target="_blank"
-              rel="noopener noreferrer nofollow"
+              rel="noopener noreferrer"
+              aria-label="Open vibe/vibe testnet in a new tab"
               className="underline hover:text-accent"
             >
               testnet.vibevibe.fun
             </a>
+          </p>
+          <nav aria-label="Official vibe/vibe links" className="mt-3 flex flex-wrap gap-2">
+            <a
+              href={OFFICIAL_LINKS.x}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open vibe/vibe on X in a new tab"
+              className="link-sticker"
+            >
+              X
+            </a>
+            <a
+              href={OFFICIAL_LINKS.discord}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Join the vibe/vibe Discord in a new tab"
+              className="link-sticker"
+            >
+              Discord
+            </a>
+            <a
+              href={OFFICIAL_LINKS.telegram}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Join the vibe/vibe Telegram in a new tab"
+              className="link-sticker"
+            >
+              Telegram
+            </a>
+            <a
+              href={OFFICIAL_LINKS.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open the vibe/vibe website in a new tab"
+              className="link-sticker"
+            >
+              Website
+            </a>
+          </nav>
+          <p className="mt-3 font-mono-ui text-xs text-ink/75">
+            Community project. Not affiliated with vibe/vibe.
           </p>
         </div>
       </footer>

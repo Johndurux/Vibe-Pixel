@@ -261,6 +261,48 @@ body {
   outline-offset: 2px;
 }
 
+/* Secondary paper action below the counter. */
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+/* Small yellow sticker links in the footer. */
+.link-sticker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--accent2);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 3px 3px 0 0 var(--ink);
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+.link-sticker:hover {
+  transform: translate(-1px, -1px);
+}
+.link-sticker:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
+}
+.link-sticker:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* Zoom percentage badge */
 .zoom-badge {
   display: inline-flex;
@@ -454,12 +496,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .btn-paper,
   .btn-sticker,
-  .btn-accent {
+  .btn-accent,
+  .btn-secondary,
+  .link-sticker {
     transition: none;
   }
   .btn-paper:hover,
   .btn-sticker:hover,
-  .btn-accent:hover {
+  .btn-accent:hover,
+  .btn-secondary:hover,
+  .link-sticker:hover {
     transform: none;
   }
 }

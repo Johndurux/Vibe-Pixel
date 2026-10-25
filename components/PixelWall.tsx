@@ -448,7 +448,8 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
             <a
               href={selected.link}
               target="_blank"
-              rel="noopener noreferrer nofollow"
+              rel="noopener noreferrer"
+              aria-label={`Open ${selected.name} project in a new tab`}
               className="btn-accent shrink-0 px-3 py-1 text-xs"
             >
               Open
