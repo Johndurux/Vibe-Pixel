@@ -26,7 +26,7 @@ export default function Home() {
           <p className="mt-3 max-w-xl text-base font-semibold text-ink">
             Tempel karyamu di papan pixel komunitas.
           </p>
-          <p className="mt-1 max-w-xl text-sm text-ink/60">
+          <p className="mt-1 max-w-xl text-sm text-ink/75">
             Papan buletin builder · 100×100 sel · satu blok, satu cerita.
           </p>
         </div>
@@ -64,7 +64,7 @@ export default function Home() {
                   <span className="counter-value">{filledCells.toLocaleString('id-ID')}</span>{' '}
                   / {TOTAL_CELLS.toLocaleString('id-ID')} blok terisi
                 </span>
-                <span className="text-ink/60">{Math.round(filledPercent)}%</span>
+                <span className="text-ink/75">{Math.round(filledPercent)}%</span>
               </div>
               <div className="counter-progress" aria-hidden="true">
                 <div

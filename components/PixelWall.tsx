@@ -440,7 +440,7 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
           <span className="h-4 w-4 shrink-0 rounded-sm border-2 border-ink" style={{ background: selected.color }} />
           <div className="min-w-0 leading-tight">
             <div className="truncate text-sm font-bold" style={{ color: selected.color }}>{selected.name}</div>
-            <div className="truncate text-xs text-ink/60">
+            <div className="truncate text-xs text-ink/75">
               {selected.description || (selected.author ? `by ${selected.author}` : 'Slot komunitas')}
             </div>
           </div>

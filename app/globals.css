@@ -92,6 +92,25 @@ body {
   display: none;
 }
 
+/* Float the zoom toolbar over the top-left of the wall. Keeping it out of flow
+   lets the cork frame stay a thin, even 8px on every side. */
+.board-scroll > div:first-child {
+  position: relative;
+}
+.board-scroll > div:first-child > div:first-child {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  width: auto;
+  max-width: calc(100% - 16px);
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+.board-scroll > div:first-child > div:first-child > div {
+  flex-wrap: nowrap;
+}
+
 /* DOM wall renderer: the board is transformed, never repainted. */
 .wall-viewport {
   flex: none;
@@ -332,7 +351,7 @@ body {
 /* Empty wall note */
 .empty-wall-state {
   position: absolute;
-  inset: 56px 0 0;
+  inset: 0;
   z-index: 3;
   display: flex;
   align-items: center;
