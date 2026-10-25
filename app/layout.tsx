@@ -9,23 +9,23 @@ const inter = Inter({ subsets: ['latin'], weight: ['400', '500', '600'], display
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '600'], display: 'swap', variable: '--font-jetbrains-mono' });
 
 export const metadata: Metadata = {
-  title: 'Vibe Pixel Wall',
+  title: 'vibe/vibe — Pixel Wall',
   description:
-    'A 100x100 pixel board for builders. Claim a block, pin your project, and show it off.',
+    'Pin your project to the vibe/vibe wall. A 100x100 community pixel board for builders.',
   openGraph: {
-    title: 'Vibe Pixel Wall',
+    title: 'vibe/vibe — Pixel Wall',
     description:
-      'A 100x100 pixel board for builders. Claim a block, pin your project, and show it off.',
+      'Pin your project to the vibe/vibe wall. A 100x100 community pixel board for builders.',
     url: 'https://vibe-pixel-wall.vercel.app',
-    siteName: 'Vibe Pixel Wall',
+    siteName: 'vibe/vibe',
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary',
-    title: 'Vibe Pixel Wall',
+    title: 'vibe/vibe — Pixel Wall',
     description:
-      'A 100x100 pixel board for builders. Claim a block, pin your project, and show it off.',
+      'Pin your project to the vibe/vibe wall. A 100x100 community pixel board for builders.',
   },
 };
 
