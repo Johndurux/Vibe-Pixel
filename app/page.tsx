@@ -24,7 +24,7 @@ export default function Home() {
             <span className="testnet-sticker">TESTNET</span>
           </div>
           <p className="mt-3 max-w-xl text-base font-semibold text-ink">
-            Pin your project to the community pixel wall.
+            Pin your project to the VibeVibe wall.
           </p>
           <p className="mt-1 max-w-xl text-sm text-ink/75">
             Community builder bulletin board · 100×100 cells · one block, one story.
