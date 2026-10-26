@@ -1,15 +1,177 @@
 'use client';
 
+import { useState } from 'react';
+import ClaimSheet from '@/components/ClaimSheet';
 import PixelWall from '@/components/PixelWall';
 import { TOTAL_CELLS } from '@/lib/blocks';
+import {
+  clampPosition,
+  createInitialClaim,
+  fieldForApiError,
+  rectsOverlap,
+  validateClaim,
+  type CellPosition,
+  type ClaimFieldErrors,
+  type ClaimState,
+} from '@/lib/claim';
 import { OFFICIAL_LINKS } from '@/lib/links';
 import { useWallBlocks } from '@/lib/useWallBlocks';
 
 export default function Home() {
   const { blocks, loading } = useWallBlocks();
+  const [claim, setClaim] = useState<ClaimState>(() => createInitialClaim());
   const filledCells = blocks.reduce((total, block) => total + block.w * block.h, 0);
   const filledPercent = Math.min(100, (filledCells / TOTAL_CELLS) * 100);
   const hasApprovedSlots = blocks.length > 0;
+
+  const claimRect =
+    claim.size && claim.position
+      ? {
+          x: claim.position.x,
+          y: claim.position.y,
+          w: claim.size,
+          h: claim.size,
+        }
+      : null;
+  const positionBlocked = claimRect
+    ? blocks.some((block) => rectsOverlap(claimRect, block))
+    : false;
+  const claimGhost =
+    claim.open && claim.step === 'position' && claimRect
+      ? {
+          ...claimRect,
+          status: positionBlocked ? ('blocked' as const) : ('free' as const),
+        }
+      : null;
+
+  const openClaim = () => setClaim({ ...createInitialClaim(), open: true });
+  const closeClaim = () => setClaim(createInitialClaim());
+
+  const handlePlace = (cell: CellPosition) => {
+    if (!claim.size) return;
+    const position = clampPosition(cell.x, cell.y, claim.size);
+    setClaim((current) => ({
+      ...current,
+      position,
+      fieldErrors: { ...current.fieldErrors, position: undefined },
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (claim.submitting) return;
+
+    if (claim.honeypot.trim()) {
+      setClaim({ ...createInitialClaim(), open: true, step: 'success' });
+      return;
+    }
+
+    const errors = validateClaim(claim);
+    if (Object.keys(errors).length > 0) {
+      setClaim((current) => ({
+        ...current,
+        fieldErrors: errors,
+        generalError: null,
+        retryable: false,
+      }));
+      return;
+    }
+
+    if (!claim.size || !claim.position || !claim.logoFile) return;
+
+    const formData = new FormData();
+    formData.append('x', String(claim.position.x));
+    formData.append('y', String(claim.position.y));
+    formData.append('w', String(claim.size));
+    formData.append('h', String(claim.size));
+    formData.append('project_name', claim.projectName.trim());
+    formData.append('description', claim.description.trim());
+    formData.append('link', claim.link.trim());
+    formData.append('color', claim.color);
+    formData.append('contract_address', claim.contractAddress.trim());
+    formData.append('logo', claim.logoFile, claim.logoFile.name);
+
+    setClaim((current) => ({
+      ...current,
+      submitting: true,
+      fieldErrors: {},
+      generalError: null,
+      retryable: false,
+    }));
+
+    try {
+      const response = await fetch('/api/slots', {
+        method: 'POST',
+        body: formData,
+        headers: { accept: 'application/json' },
+      });
+      const payload: unknown = await response.json().catch(() => null);
+
+      if (response.ok) {
+        setClaim({ ...createInitialClaim(), open: true, step: 'success' });
+        return;
+      }
+
+      const message =
+        payload &&
+        typeof payload === 'object' &&
+        'error' in payload &&
+        typeof (payload as { error?: unknown }).error === 'string'
+          ? (payload as { error: string }).error
+          : 'Something went wrong. Please try again.';
+
+      if (response.status === 409) {
+        setClaim((current) => ({
+          ...current,
+          submitting: false,
+          step: 'position',
+          position: null,
+          fieldErrors: { position: 'That spot was just taken, pick another.' },
+          generalError: null,
+          retryable: false,
+        }));
+        return;
+      }
+
+      if (response.status === 429) {
+        setClaim((current) => ({
+          ...current,
+          submitting: false,
+          generalError: 'Too many submissions. Try again later.',
+          retryable: false,
+        }));
+        return;
+      }
+
+      if (response.status === 400 || response.status === 413 || response.status === 415) {
+        const field = fieldForApiError(message);
+        setClaim((current) => {
+          const fieldErrors: ClaimFieldErrors = field ? { [field]: message } : {};
+          return {
+            ...current,
+            submitting: false,
+            fieldErrors,
+            generalError: field ? null : message,
+            retryable: false,
+          };
+        });
+        return;
+      }
+
+      setClaim((current) => ({
+        ...current,
+        submitting: false,
+        generalError: 'Something went wrong. Please try again.',
+        retryable: true,
+      }));
+    } catch {
+      setClaim((current) => ({
+        ...current,
+        submitting: false,
+        generalError: 'Network error. Check your connection and try again.',
+        retryable: true,
+      }));
+    }
+  };
 
   return (
     <main className="bg-paper text-ink">
@@ -33,6 +195,27 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Claim CTA stays in flow so it never covers the board or its gestures. */}
+      <div className="mx-auto w-full max-w-7xl px-4 pb-4 sm:px-6">
+        <div className="mx-auto w-full max-w-[1020px]">
+          <button
+            type="button"
+            onClick={() => {
+              if (!claim.open) openClaim();
+            }}
+            aria-disabled={claim.open}
+            aria-haspopup="dialog"
+            aria-expanded={claim.open}
+            className="btn-sticker claim-cta"
+          >
+            Claim a slot
+          </button>
+          <p className="mt-2 max-w-md font-mono-ui text-xs text-ink/75">
+            Free during testnet. Submissions are reviewed before they appear.
+          </p>
+        </div>
+      </div>
+
       <section className="mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6">
         {/* Keep the old 1020px frame footprint; the frame now hugs the wall. */}
         <div className="mx-auto w-full max-w-[1020px]">
@@ -43,7 +226,12 @@ export default function Home() {
             <span className="pushpin pushpin-br" aria-hidden="true" />
 
             <div className="board-scroll relative z-[2] flex w-full min-w-0 items-stretch justify-start overflow-hidden">
-              <PixelWall blocks={blocks} />
+              <PixelWall
+                blocks={blocks}
+                placing={claim.open && claim.step === 'position'}
+                onPlace={handlePlace}
+                ghost={claimGhost}
+              />
 
               {!loading && !hasApprovedSlots ? (
                 <div className="empty-wall-state" aria-hidden="true">
@@ -145,6 +333,16 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {claim.open ? (
+        <ClaimSheet
+          claim={claim}
+          setClaim={setClaim}
+          positionBlocked={positionBlocked}
+          onClose={closeClaim}
+          onSubmit={handleSubmit}
+        />
+      ) : null}
     </main>
   );
 }

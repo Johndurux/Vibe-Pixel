@@ -509,3 +509,531 @@ body {
     transform: none;
   }
 }
+/* Claim CTA */
+.claim-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 15px;
+  text-decoration: none;
+}
+.claim-cta[aria-disabled="true"] {
+  opacity: 0.65;
+  cursor: default;
+  transform: none;
+  box-shadow: 3px 3px 0 0 var(--ink);
+}
+
+/* Bottom sheet */
+.claim-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  background: rgba(22, 20, 15, 0.45);
+}
+.claim-sheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85dvh;
+  overflow: hidden;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 0.75rem 0.75rem 0 0;
+  box-shadow: 6px 6px 0 0 var(--ink);
+  animation: claim-sheet-in 180ms ease-out;
+}
+.claim-sheet-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
+}
+.claim-sheet h2,
+.claim-position-bar h2 {
+  margin: 0;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.claim-sheet h2 {
+  font-size: 1.25rem;
+}
+.claim-eyebrow {
+  margin: 0 0 2px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.claim-close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: var(--accent2);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 2px 2px 0 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+.claim-close:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 0 var(--ink);
+}
+.claim-close:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
+}
+.claim-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 12px 18px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.claim-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+.claim-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 18px;
+  font-size: 14px;
+  text-decoration: none;
+}
+.claim-sheet-actions .claim-action {
+  flex: 1 1 160px;
+}
+.claim-sheet-actions .claim-secondary {
+  flex: 0 0 auto;
+}
+.claim-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+/* Size step */
+.claim-size-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.claim-size-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 44px;
+  padding: 0;
+  overflow: visible;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 3px 3px 0 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.05s, box-shadow 0.05s;
+}
+.claim-size-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 0 var(--ink);
+}
+.claim-size-card:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 0 var(--ink);
+}
+.claim-size-card[data-selected="true"] {
+  background: var(--accent2);
+}
+.claim-size-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 104px;
+  overflow: hidden;
+  background: rgba(22, 20, 15, 0.03);
+  border-bottom: 2px solid var(--ink);
+}
+.claim-size-square {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+.claim-size-card[data-selected="true"] .claim-size-square {
+  background: var(--accent2);
+}
+.claim-size-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.claim-size-label > span {
+  font-size: 14px;
+}
+.claim-size-label small {
+  font-size: 10px;
+  font-weight: 400;
+}
+
+/* Form */
+.claim-field {
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+}
+.claim-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.claim-label,
+.claim-field label {
+  display: block;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.claim-optional {
+  font-weight: 400;
+  opacity: 0.75;
+}
+.claim-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.3;
+  box-shadow: inset 2px 2px 0 rgba(22, 20, 15, 0.06);
+}
+.claim-input:focus {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.claim-input[aria-invalid="true"] {
+  border-color: var(--accent);
+}
+.claim-textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+.claim-counter {
+  flex: 0 0 auto;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgba(22, 20, 15, 0.75);
+  white-space: nowrap;
+}
+.claim-error {
+  margin: 4px 0 0;
+  padding: 4px 6px;
+  background: rgba(255, 90, 54, 0.12);
+  border-left: 3px solid var(--accent);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.claim-helper {
+  margin: 4px 0 0;
+  color: rgba(22, 20, 15, 0.75);
+  font-size: 12px;
+  line-height: 1.3;
+}
+.claim-file-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.claim-field .claim-file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.claim-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.claim-file-row:focus-within .claim-file-button {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.claim-logo-preview {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
+}
+.claim-file-name {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.claim-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.claim-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
+  cursor: pointer;
+}
+.claim-swatch[data-selected="true"] {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+.claim-swatch-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--ink);
+  border-radius: 9999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.claim-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.claim-error-box {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(255, 90, 54, 0.12);
+  border: 2px solid var(--accent);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.35;
+}
+.claim-error-box p {
+  margin: 0;
+}
+.claim-error-box button {
+  margin-top: 8px;
+}
+.claim-position-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--accent2);
+  border: 2px solid var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+.claim-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 8px;
+  background: transparent;
+  border: 0;
+  color: var(--ink);
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.claim-success {
+  margin: 8px 0 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* Position step: compact bar so the board stays visible and tappable. */
+.claim-position-wrap {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  padding: 0 8px 8px;
+  pointer-events: none;
+}
+.claim-position-bar {
+  width: 100%;
+  max-width: 720px;
+  padding: 12px 14px 14px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 0 -4px 0 0 var(--ink);
+  pointer-events: auto;
+  animation: claim-sheet-in 180ms ease-out;
+}
+.claim-position-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.claim-position-bar h2 {
+  font-size: 15px;
+}
+.claim-position-meta {
+  margin: 4px 0 0;
+  font-family: var(--font-space-mono), monospace;
+  font-size: 12px;
+  line-height: 1.3;
+  color: rgba(22, 20, 15, 0.8);
+}
+.claim-position-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.claim-position-actions .claim-action {
+  flex: 1 1 160px;
+}
+.claim-position-actions .claim-secondary {
+  flex: 0 0 auto;
+}
+
+/* Ghost placement preview: one extra element only while placing. */
+.wall-ghost {
+  position: absolute;
+  z-index: 4;
+  box-sizing: border-box;
+  background: rgba(255, 210, 63, 0.35);
+  border: 3px dashed var(--ink);
+  box-shadow: 2px 2px 0 0 var(--ink);
+  pointer-events: none;
+}
+.wall-ghost[data-status="blocked"] {
+  background: rgba(255, 90, 54, 0.35);
+}
+
+@keyframes claim-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .claim-sheet,
+  .claim-position-bar,
+  .claim-close,
+  .claim-size-card {
+    animation: none;
+    transition: none;
+  }
+  .claim-close:hover,
+  .claim-size-card:hover,
+  .claim-close:active,
+  .claim-size-card:active {
+    transform: none;
+  }
+}
+
+/* Disabled sticker actions stay visibly inactive. */
+.btn-sticker:disabled,
+.claim-action:disabled,
+.claim-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 2px 2px 0 0 var(--ink);
+}

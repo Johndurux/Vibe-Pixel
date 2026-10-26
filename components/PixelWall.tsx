@@ -29,6 +29,26 @@ interface PinchState {
   centerY: number;
 }
 
+export interface CellPoint {
+  x: number;
+  y: number;
+}
+
+export interface WallGhost {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  status: 'free' | 'blocked';
+}
+
+interface PixelWallProps {
+  blocks: WallBlock[];
+  placing?: boolean;
+  onPlace?: (cell: CellPoint) => void;
+  ghost?: WallGhost | null;
+}
+
 const BASE_CELL = 10;
 const BOARD_SIZE = GRID_SIZE * BASE_CELL;
 const MAX_SCALE = 4;
@@ -81,7 +101,7 @@ const BlockLayer = memo(function BlockLayer({ blocks }: { blocks: WallBlock[] })
   );
 });
 
-export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
+export default function PixelWall({ blocks, placing = false, onPlace, ghost = null }: PixelWallProps) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<ViewState>({ scale: 1, x: 0, y: 0 });
@@ -104,6 +124,10 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
       current ? blocks.find((block) => block.id === current.id) ?? null : null,
     );
   }, [blocks]);
+
+  useEffect(() => {
+    if (placing) setSelected(null);
+  }, [placing]);
 
   const applyTransform = () => {
     const board = boardRef.current;
@@ -194,6 +218,21 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
     const target = hit instanceof Element ? hit.closest<HTMLElement>('[data-block-id]') : null;
     const id = target?.dataset.blockId;
     return id ? blocksRef.current.find((block) => block.id === id) ?? null : null;
+  };
+
+  const cellFromClientPoint = (clientX: number, clientY: number): CellPoint | null => {
+    const viewport = viewportRef.current;
+    if (!viewport) return null;
+
+    const rect = viewport.getBoundingClientRect();
+    const view = viewRef.current;
+    const boardX = (clientX - rect.left - view.x) / view.scale;
+    const boardY = (clientY - rect.top - view.y) / view.scale;
+
+    return {
+      x: clamp(Math.floor(boardX / BASE_CELL), 0, GRID_SIZE - 1),
+      y: clamp(Math.floor(boardY / BASE_CELL), 0, GRID_SIZE - 1),
+    };
   };
 
   useIsomorphicLayoutEffect(() => {
@@ -385,8 +424,13 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
     }
 
     if (wasTap) {
-      const block = pickBlockAt(event.clientX, event.clientY);
-      if (block) setSelected(block);
+      if (placing && onPlace) {
+        const cell = cellFromClientPoint(event.clientX, event.clientY);
+        if (cell) onPlace(cell);
+      } else {
+        const block = pickBlockAt(event.clientX, event.clientY);
+        if (block) setSelected(block);
+      }
     }
 
     event.preventDefault();
@@ -428,6 +472,19 @@ export default function PixelWall({ blocks }: { blocks: WallBlock[] }) {
         >
           <div className="wall-grid pointer-events-none absolute inset-0" />
           <BlockLayer blocks={blocks} />
+          {ghost ? (
+            <div
+              data-testid="claim-ghost"
+              data-status={ghost.status}
+              className="wall-ghost"
+              style={{
+                left: `${ghost.x * BASE_CELL}px`,
+                top: `${ghost.y * BASE_CELL}px`,
+                width: `${ghost.w * BASE_CELL}px`,
+                height: `${ghost.h * BASE_CELL}px`,
+              }}
+            />
+          ) : null}
         </div>
       </div>
 
