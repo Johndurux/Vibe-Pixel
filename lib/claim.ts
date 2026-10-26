@@ -54,9 +54,9 @@ export const SLOT_SIZES: Array<{
   pixels: string;
   preview: number;
 }> = [
-  { value: 3, label: 'S', cells: '3x3', pixels: '30px', preview: 30 },
-  { value: 5, label: 'M', cells: '5x5', pixels: '50px', preview: 50 },
   { value: 10, label: 'L', cells: '10x10', pixels: '100px', preview: 100 },
+  { value: 5, label: 'M', cells: '5x5', pixels: '50px', preview: 50 },
+  { value: 3, label: 'S', cells: '3x3', pixels: '30px', preview: 30 },
 ];
 
 export const MAX_LOGO_BYTES = 200 * 1024;
@@ -66,7 +66,7 @@ export function createInitialClaim(): ClaimState {
   return {
     open: false,
     step: 'size',
-    size: null,
+    size: 10,
     position: null,
     projectName: '',
     description: '',

@@ -233,7 +233,29 @@ async function runClaimFlow(browser, errors) {
     const sheet = page.getByTestId('claim-sheet');
     await sheet.waitFor({ state: 'visible' });
     assert.match(await sheet.innerText(), /Pick your size/);
-    assert.equal(await page.getByRole('button', { name: 'Next' }).isDisabled(), true);
+    const sizeCards = page.locator('.claim-size-card');
+    assert.equal(await sizeCards.count(), 3, 'expected three size options');
+    assert.equal(
+      await sizeCards.first().getAttribute('aria-label'),
+      'L 10x10 (100px)',
+      'L 10x10 should be the first size card',
+    );
+    assert.equal(
+      await sizeCards.first().getAttribute('aria-pressed'),
+      'true',
+      'L 10x10 should be selected by default',
+    );
+    assert.equal(
+      await page.getByRole('button', { name: 'S 3x3 (30px)' }).count(),
+      1,
+      'S 3x3 should remain available',
+    );
+    assert.equal(
+      await page.getByRole('button', { name: 'M 5x5 (50px)' }).count(),
+      1,
+      'M 5x5 should remain available',
+    );
+    assert.equal(await page.getByRole('button', { name: 'Next' }).isDisabled(), false);
     await page.waitForTimeout(20);
 
     assert.equal(
@@ -253,12 +275,16 @@ async function runClaimFlow(browser, errors) {
 
     await cta.click();
     await sheet.waitFor({ state: 'visible' });
-    await page.getByRole('button', { name: 'M 5x5 (50px)' }).click();
-    assert.equal(await page.getByRole('button', { name: 'Next' }).isDisabled(), false);
+    assert.equal(
+      await page.locator('.claim-size-card').first().getAttribute('aria-pressed'),
+      'true',
+      'reopened sheet should reset to L 10x10',
+    );
     await page.getByRole('button', { name: 'Next' }).click();
 
     const bar = page.getByTestId('claim-position-bar');
     await bar.waitFor({ state: 'visible' });
+    assert.match(await bar.innerText(), /10x10 slot/, 'position bar should use the default 10x10 size');
     assert.equal(await page.getByTestId('claim-ghost').count(), 0, 'ghost should start hidden');
     assert.equal(
       await page.getByRole('button', { name: 'Confirm position' }).isDisabled(),
@@ -273,6 +299,11 @@ async function runClaimFlow(browser, errors) {
 
     const ghost = page.getByTestId('claim-ghost');
     await ghost.waitFor({ state: 'visible' });
+    assert.deepEqual(
+      await ghost.evaluate(el => ({ width: el.style.width, height: el.style.height })),
+      { width: '100px', height: '100px' },
+      'default ghost should be 10x10 (100px)',
+    );
     assert.equal(
       await ghost.getAttribute('data-status'),
       'blocked',
@@ -285,11 +316,42 @@ async function runClaimFlow(browser, errors) {
     );
     assert.match(await bar.innerText(), /That spot is taken/);
 
+    const boardBox = await page.getByTestId('wall-board').boundingBox();
+    assert.ok(boardBox, 'board box missing');
+
+    // A 10x10 ghost must clamp inside the 100x100 grid at the bottom-right edge.
+    await page.mouse.click(
+      boardBox.x + boardBox.width * 0.995,
+      boardBox.y + boardBox.height * 0.995,
+    );
+    await page.waitForFunction(() => {
+      const element = document.querySelector('[data-testid="claim-ghost"]');
+      return element?.getAttribute('data-status') === 'free';
+    });
+    assert.deepEqual(
+      await ghost.evaluate(el => ({
+        left: el.style.left,
+        top: el.style.top,
+        width: el.style.width,
+        height: el.style.height,
+      })),
+      { left: '900px', top: '900px', width: '100px', height: '100px' },
+      '10x10 ghost should clamp to the bottom-right edge',
+    );
+    assert.match(await bar.innerText(), /90,\s*90/);
+
+    // Return to a free interior cell for the zoom/pan tap mapping check.
+    await page.mouse.click(
+      boardBox.x + boardBox.width * 0.305,
+      boardBox.y + boardBox.height * 0.305,
+    );
+    await page.waitForFunction(() => {
+      const element = document.querySelector('[data-testid="claim-ghost"]');
+      return element?.getAttribute('data-status') === 'free';
+    });
     const ghostBeforeMove = await ghost.evaluate(
       el => `${el.style.left}|${el.style.top}|${el.dataset.status}`,
     );
-    const boardBox = await page.getByTestId('wall-board').boundingBox();
-    assert.ok(boardBox, 'board box missing');
     await page.mouse.move(boardBox.x + boardBox.width * 0.2, boardBox.y + boardBox.height * 0.2);
     await page.mouse.move(
       boardBox.x + boardBox.width * 0.8,
@@ -348,7 +410,7 @@ async function runClaimFlow(browser, errors) {
     const details = page.getByTestId('claim-sheet');
     await details.waitFor({ state: 'visible' });
     assert.match(await details.innerText(), /Project details/);
-    assert.match(await details.innerText(), /5x5 at 30, 30/);
+    assert.match(await details.innerText(), /10x10 at 30, 30/);
     const pageDom = await page.evaluate(() => document.querySelectorAll('*').length);
     assert.ok(pageDom < 250, `claim page DOM too large (${pageDom})`);
 
@@ -403,12 +465,14 @@ async function runClaimFlow(browser, errors) {
     );
     assert.match(postedBodies[0], /name="x"\r?\n\r?\n30/, 'first POST x should be 30');
     assert.match(postedBodies[0], /name="y"\r?\n\r?\n30/, 'first POST y should be 30');
+    assert.match(postedBodies[0], /name="w"\r?\n\r?\n10/, 'first POST w should be 10');
+    assert.match(postedBodies[0], /name="h"\r?\n\r?\n10/, 'first POST h should be 10');
 
     const retryBoardBox = await page.getByTestId('wall-board').boundingBox();
     assert.ok(retryBoardBox, 'board box missing after 409');
     await page.mouse.click(
-      retryBoardBox.x + retryBoardBox.width * 0.405,
-      retryBoardBox.y + retryBoardBox.height * 0.405,
+      retryBoardBox.x + retryBoardBox.width * 0.355,
+      retryBoardBox.y + retryBoardBox.height * 0.355,
     );
     await page.waitForFunction(() => {
       const element = document.querySelector('[data-testid="claim-ghost"]');
@@ -416,7 +480,7 @@ async function runClaimFlow(browser, errors) {
     });
     await page.getByRole('button', { name: 'Confirm position' }).click();
     await details.waitFor({ state: 'visible' });
-    assert.match(await details.innerText(), /5x5 at 40, 40/);
+    assert.match(await details.innerText(), /10x10 at 35, 35/);
     assert.equal(await page.getByLabel('Project name').inputValue(), 'Vibe Test');
     assert.equal(await page.getByLabel('Project link').inputValue(), 'https://example.com');
     assert.equal(await page.getByLabel(/Contract address/).inputValue(), contract);
@@ -447,8 +511,10 @@ async function runClaimFlow(browser, errors) {
     assert.ok(postedBody.includes('#FFD23F'), 'POST body missing color');
     assert.ok(postedBody.includes(contract), 'POST body missing contract');
     assert.ok(postedBody.includes('filename="logo.png"'), 'POST body missing logo file');
-    assert.match(postedBody, /name="x"\r?\n\r?\n40/, 'retry POST x should be 40');
-    assert.match(postedBody, /name="y"\r?\n\r?\n40/, 'retry POST y should be 40');
+    assert.match(postedBody, /name="x"\r?\n\r?\n35/, 'retry POST x should be 35');
+    assert.match(postedBody, /name="y"\r?\n\r?\n35/, 'retry POST y should be 35');
+    assert.match(postedBody, /name="w"\r?\n\r?\n10/, 'retry POST w should be 10');
+    assert.match(postedBody, /name="h"\r?\n\r?\n10/, 'retry POST h should be 10');
 
     await page.getByRole('button', { name: 'Close', exact: true }).click();
     await sheet.waitFor({ state: 'detached' });
@@ -462,7 +528,11 @@ async function runClaimFlow(browser, errors) {
     // Honeypot submissions must fake success without sending a request.
     await cta.click();
     await sheet.waitFor({ state: 'visible' });
-    await page.getByRole('button', { name: 'M 5x5 (50px)' }).click();
+    assert.equal(
+      await page.locator('.claim-size-card').first().getAttribute('aria-pressed'),
+      'true',
+      'honeypot flow should reset to L 10x10',
+    );
     await page.getByRole('button', { name: 'Next' }).click();
     await bar.waitFor({ state: 'visible' });
     const freshBoardBox = await page.getByTestId('wall-board').boundingBox();
@@ -497,6 +567,11 @@ async function runClaimFlow(browser, errors) {
 
       await cta.click();
       await sheet.waitFor({ state: 'visible' });
+      assert.equal(
+        await page.locator('.claim-size-card').first().getAttribute('aria-pressed'),
+        'true',
+        `claim size ${width}: L 10x10 should be selected by default`,
+      );
       await page.waitForTimeout(220);
       let overflow = await page.evaluate(() => {
         const sheetElement = document.querySelector('[data-testid="claim-sheet"]');
@@ -510,7 +585,6 @@ async function runClaimFlow(browser, errors) {
       assert.equal(overflow.body, 0, `claim size ${width}: sheet body overflow`);
       await page.screenshot({ path: `${OUT}/claim-${width}-size.png`, fullPage: false });
 
-      await page.getByRole('button', { name: 'M 5x5 (50px)' }).click();
       await page.getByRole('button', { name: 'Next' }).click();
       await bar.waitFor({ state: 'visible' });
       await page.waitForTimeout(220);
@@ -533,6 +607,11 @@ async function runClaimFlow(browser, errors) {
       );
       await page.getByRole('button', { name: 'Confirm position' }).click();
       await sheet.waitFor({ state: 'visible' });
+      assert.match(
+        await sheet.innerText(),
+        /10x10 at 20, 20/,
+        `claim ${width}: details should keep the default 10x10 size`,
+      );
       overflow = await page.evaluate(() => {
         const sheetElement = document.querySelector('[data-testid="claim-sheet"]');
         const body = sheetElement?.querySelector('.claim-sheet-body');

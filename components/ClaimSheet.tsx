@@ -48,7 +48,7 @@ export default function ClaimSheet({
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
-  const size = claim.size ?? 5;
+  const size = claim.size ?? 10;
   const linkInlineError =
     claim.fieldErrors.link ||
     (claim.link.length > 0 && !isHttpsUrl(claim.link)
